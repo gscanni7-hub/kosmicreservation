@@ -864,18 +864,17 @@ function ReservationsTable({ reservations, userRole, events }: {
   userRole: string;
   events: Event[];
 }) {
+  const sorted = [...reservations].sort((a, b) => a.customerName.localeCompare(b.customerName));
+
   const exportCSV = () => {
-    const headers = ['Evento', 'Tavolo', 'Status', 'Cliente', 'PR', 'PAX', 'Budget €', 'Bottiglie', 'Note'];
-    const rows = reservations.map(r => [
-      events.find(e => e.id === r.eventId)?.name ?? r.eventId,
+    const headers = ['Tavolo', 'Cliente', 'PR', 'PAX', 'Budget €', 'Bottiglie'];
+    const rows = sorted.map(r => [
       r.tableName ?? r.tableId,
-      r.status,
       r.customerName,
       r.prName,
       r.guestsCount,
       r.budget,
       r.bottles,
-      r.notes,
     ]);
     const csv = [headers, ...rows]
       .map(row => row.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(','))
@@ -904,7 +903,7 @@ function ReservationsTable({ reservations, userRole, events }: {
           <div className="px-5 py-16 text-center">
             <p className="text-[9px] font-sans uppercase tracking-[0.4em] text-[#444]">Nessuna Prenotazione</p>
           </div>
-        ) : reservations.map(res => (
+        ) : sorted.map(res => (
           <div key={res.id} className="p-5 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -941,7 +940,7 @@ function ReservationsTable({ reservations, userRole, events }: {
             </tr>
           </thead>
           <tbody>
-            {reservations.map(res => (
+            {sorted.map(res => (
               <tr key={res.id} className="border-b border-[#1a1a1a] hover:bg-white/[0.01] transition-colors group">
                 <td className="px-7 py-5">
                   <div className="flex items-center gap-2.5">
