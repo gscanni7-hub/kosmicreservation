@@ -13,13 +13,20 @@ interface FloorPlanViewerProps {
   onReservationAdded: (res: Reservation) => void;
 }
 
+const STATUS_COLORS = {
+  confirmed: '#ef4444',
+  optioned:  '#F0E800',
+  blocked:   '#2a2a2a',
+  free:      '#22c55e',
+} as const;
+
 export default function FloorPlanViewer({ event, floorPlan, reservations, currentUser, onReservationAdded }: FloorPlanViewerProps) {
   const [selectedTable, setSelectedTable] = useState<Table | null>(null);
   const [showBookingModal, setShowBookingModal] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
 
-  const canvasW = floorPlan.canvasWidth ?? 800;
+  const canvasW = floorPlan.canvasWidth  ?? 800;
   const canvasH = floorPlan.canvasHeight ?? 600;
 
   useEffect(() => {
@@ -32,113 +39,59 @@ export default function FloorPlanViewer({ event, floorPlan, reservations, curren
     return () => ro.disconnect();
   }, []);
 
-  const scale = containerWidth > 0 ? containerWidth / canvasW : 1;
-  const stageH = canvasH * scale;
+  const scale   = containerWidth > 0 ? containerWidth / canvasW : 1;
+  const stageH  = canvasH * scale;
 
-  const getTableStatus = (tableId: string) => {
-    const res = reservations.find(r => r.tableId === tableId && r.eventId === event.id);
-    return res ? res.status : 'free';
-  };
-
-  const getReservation = (tableId: string) =>
-    reservations.find(r => r.tableId === tableId && r.eventId === event.id);
-
-  const getTableColor = (status: string) => {
-    switch (status) {
-      case 'confirmed': return '#ef4444';
-      case 'optioned':  return '#eab308';
-      case 'blocked':   return '#71717a';
-      default:          return '#22c55e';
-    }
-  };
+  const getStatus      = (id: string) => reservations.find(r => r.tableId === id && r.eventId === event.id)?.status ?? 'free';
+  const getReservation = (id: string) => reservations.find(r => r.tableId === id && r.eventId === event.id);
 
   return (
-    <div className="flex flex-col h-full gap-8 lg:flex-row">
-      <div
-        ref={containerRef}
-        className="flex-1 bg-zinc-900/30 rounded-2xl border border-border overflow-hidden relative floorplan-grid"
-        style={{ minHeight: '500px' }}
-      >
+    <div className="flex flex-col lg:flex-row h-full gap-5">
+      {/* Canvas */}
+      <div ref={containerRef}
+        className="flex-1 bg-[#080808] border border-[#1a1a1a] overflow-hidden relative floorplan-grid"
+        style={{ minHeight: 400 }}>
         <Stage width={containerWidth} height={stageH} scaleX={scale} scaleY={scale}>
           <Layer>
-            {/* Static areas: BAR, CONSOLE, etc. */}
+            {/* Static areas */}
             {floorPlan.staticAreas?.map(area => (
               <Group key={area.id}>
-                <Rect
-                  x={area.x}
-                  y={area.y}
-                  width={area.width}
-                  height={area.height}
-                  fill="#18181b"
-                  stroke="#3f3f46"
-                  strokeWidth={2}
-                  cornerRadius={4}
-                />
-                <Text
-                  x={area.x}
-                  y={area.y}
-                  width={area.width}
-                  height={area.height}
-                  text={area.label}
-                  align="center"
-                  verticalAlign="middle"
-                  fill="#d4af37"
-                  fontStyle="bold"
-                  fontSize={16}
-                  letterSpacing={4}
-                />
+                <Rect x={area.x} y={area.y} width={area.width} height={area.height}
+                  fill="#0d0d0d" stroke="#222" strokeWidth={1.5} cornerRadius={0} />
+                <Text x={area.x} y={area.y} width={area.width} height={area.height}
+                  text={area.label} align="center" verticalAlign="middle"
+                  fill="#F0E800" fontStyle="bold" fontSize={14} letterSpacing={3}
+                  fontFamily="'Helvetica Neue', Helvetica, Arial, sans-serif" />
               </Group>
             ))}
 
             {/* Tables */}
             {floorPlan.tables.map(table => {
-              const status = getTableStatus(table.id);
-              const color = getTableColor(status);
-              const isSelected = selectedTable?.id === table.id;
+              const status = getStatus(table.id);
+              const color  = STATUS_COLORS[status as keyof typeof STATUS_COLORS] ?? STATUS_COLORS.free;
+              const sel    = selectedTable?.id === table.id;
 
               return (
-                <Group
-                  key={table.id}
-                  x={table.x}
-                  y={table.y}
+                <Group key={table.id} x={table.x} y={table.y}
                   onClick={() => setSelectedTable(table)}
-                  onTap={() => setSelectedTable(table)}
-                >
+                  onTap={() => setSelectedTable(table)}>
                   {table.shape === 'rect' ? (
-                    <Rect
-                      width={table.width}
-                      height={table.height}
-                      fill={color}
-                      opacity={0.18}
-                      stroke={color}
-                      strokeWidth={isSelected ? 3 : 1.5}
-                      cornerRadius={3}
-                      shadowBlur={isSelected ? 14 : 0}
-                      shadowColor={color}
-                    />
+                    <Rect width={table.width} height={table.height}
+                      fill={color} opacity={sel ? 0.28 : 0.14}
+                      stroke={color} strokeWidth={sel ? 2.5 : 1}
+                      cornerRadius={0}
+                      shadowBlur={sel ? 16 : 0} shadowColor={color} />
                   ) : (
-                    <Circle
-                      radius={table.width / 2}
-                      x={table.width / 2}
-                      y={table.width / 2}
-                      fill={color}
-                      opacity={0.18}
-                      stroke={color}
-                      strokeWidth={isSelected ? 3 : 1.5}
-                      shadowBlur={isSelected ? 14 : 0}
-                      shadowColor={color}
-                    />
+                    <Circle radius={table.width / 2} x={table.width / 2} y={table.width / 2}
+                      fill={color} opacity={sel ? 0.28 : 0.14}
+                      stroke={color} strokeWidth={sel ? 2.5 : 1}
+                      shadowBlur={sel ? 16 : 0} shadowColor={color} />
                   )}
-                  <Text
-                    text={table.name}
-                    width={table.width}
-                    height={table.height}
-                    align="center"
-                    verticalAlign="middle"
-                    fill="white"
-                    fontStyle="bold"
-                    fontSize={11}
-                  />
+                  <Text text={table.name}
+                    width={table.width} height={table.height}
+                    align="center" verticalAlign="middle"
+                    fill="white" fontStyle="bold" fontSize={10}
+                    fontFamily="'Helvetica Neue', Helvetica, Arial, sans-serif" />
                 </Group>
               );
             })}
@@ -146,86 +99,103 @@ export default function FloorPlanViewer({ event, floorPlan, reservations, curren
         </Stage>
 
         {/* Legend */}
-        <div className="absolute bottom-4 left-4 p-4 bg-card/50 backdrop-blur-2xl rounded border border-white/5 flex gap-6 items-center">
-          <div className="text-[8px] uppercase tracking-[0.4em] text-zinc-500 font-black border-r border-white/10 pr-4 mr-1">Disponibilità</div>
-          <LegendItem color="#22c55e" label="Libero" />
-          <LegendItem color="#eab308" label="Opzionato" />
-          <LegendItem color="#ef4444" label="Occupato" />
-          <LegendItem color="#3f3f46" label="Bloccato" />
+        <div className="absolute bottom-4 left-4 flex gap-5 items-center bg-black/70 backdrop-blur-sm border border-[#1a1a1a] px-4 py-2.5">
+          <span className="text-[8px] font-sans uppercase tracking-[0.4em] text-[#333] border-r border-[#1a1a1a] pr-4">Tavoli</span>
+          {Object.entries(STATUS_COLORS).map(([key, color]) => (
+            <div key={key} className="flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: color }} />
+              <span className="text-[8px] font-sans uppercase tracking-widest text-[#444] capitalize">{key}</span>
+            </div>
+          ))}
         </div>
       </div>
 
       {/* Side panel */}
-      <aside className="w-full lg:w-80 flex flex-col gap-6">
+      <aside className="w-full lg:w-72 xl:w-80 flex flex-col shrink-0">
         <AnimatePresence mode="wait">
           {!selectedTable ? (
-            <motion.div
-              key="prompt"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="p-8 border border-dashed border-border rounded-xl flex flex-col items-center justify-center text-center text-zinc-700 h-full bg-card/50"
-            >
-              <Info className="mb-4 opacity-20" size={32} />
-              <p className="text-[10px] uppercase tracking-widest leading-loose font-bold">Seleziona un tavolo<br />per i dettagli</p>
+            <motion.div key="prompt"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="flex-1 border border-dashed border-[#1a1a1a] flex flex-col items-center justify-center text-center p-8 min-h-[200px]">
+              <Info size={24} className="text-[#1e1e1e] mb-4" />
+              <p className="text-[9px] font-sans uppercase tracking-widest text-[#2a2a2a] leading-loose">
+                Seleziona un tavolo<br />per i dettagli
+              </p>
             </motion.div>
           ) : (
-            <motion.div
-              key={selectedTable.id}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              className="bg-card border border-border rounded-xl overflow-hidden flex flex-col h-full"
-            >
-              <div className="p-6 flex justify-between items-center bg-[#0c0c0d]">
-                <h2 className="serif text-xl italic">Tavolo {selectedTable.name}</h2>
-                <button onClick={() => setSelectedTable(null)} className="text-zinc-500 hover:text-white transition-colors">
-                  <X size={16} />
+            <motion.div key={selectedTable.id}
+              initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 16 }}
+              className="flex-1 bg-card border border-[#1a1a1a] flex flex-col overflow-hidden">
+
+              {/* Panel header */}
+              <div className="px-6 py-4 border-b border-[#111] flex items-center justify-between bg-[#080808]">
+                <div>
+                  <h3 className="hv font-black uppercase text-white text-lg">
+                    Tavolo {selectedTable.name}
+                  </h3>
+                  <p className="text-[8px] font-sans uppercase tracking-widest text-[#2a2a2a] mt-0.5">
+                    {selectedTable.area}
+                  </p>
+                </div>
+                <button onClick={() => setSelectedTable(null)}
+                  className="text-[#333] hover:text-white transition-colors p-1">
+                  <X size={15} />
                 </button>
               </div>
 
               <div className="flex-1 overflow-auto p-6 space-y-6">
-                <div className="space-y-4">
-                  <Row label="Area"      value={selectedTable.area} />
-                  <Row label="Pax"       value={String(selectedTable.capacity)} />
-                  <Row label="Min. Spesa" value={`€${selectedTable.minSpend}`} accent />
+                {/* Table info */}
+                <div className="space-y-0">
+                  <InfoRow label="Pax"        value={String(selectedTable.capacity)} />
+                  <InfoRow label="Min. Spesa"  value={`€${selectedTable.minSpend}`} accent />
+                  <InfoRow label="Stato"       value={getStatus(selectedTable.id)} accent />
                 </div>
 
                 {getReservation(selectedTable.id) ? (
-                  <div className="space-y-6">
-                    <div className="space-y-4">
-                      <Row label="Cliente"     value={getReservation(selectedTable.id)!.customerName} />
-                      <Row label="Referente PR" value={getReservation(selectedTable.id)!.prName} accent />
-                      <Row label="Stato"        value={getReservation(selectedTable.id)!.status} accent />
+                  <div className="space-y-5">
+                    <div className="space-y-0">
+                      <InfoRow label="Cliente"     value={getReservation(selectedTable.id)!.customerName} />
+                      <InfoRow label="Contatto"    value={getReservation(selectedTable.id)!.customerPhone} mono />
+                      <InfoRow label="PR"          value={getReservation(selectedTable.id)!.prName} accent />
                     </div>
 
-                    <div className="p-4 rounded bg-zinc-900 border border-zinc-800">
-                      <h4 className="text-[9px] uppercase tracking-widest text-zinc-500 mb-2">Bottiglie</h4>
-                      <p className="text-xs text-zinc-300 font-mono">
-                        {getReservation(selectedTable.id)!.bottles || 'Nessun pre-ordine'}
-                      </p>
-                    </div>
-
-                    {getReservation(selectedTable.id)!.notes && (
-                      <div className="p-4 rounded bg-accent/5 border border-accent/20">
-                        <h4 className="text-[9px] uppercase tracking-widest text-accent mb-2">Note</h4>
-                        <p className="text-xs text-zinc-400 italic">"{getReservation(selectedTable.id)!.notes}"</p>
+                    {getReservation(selectedTable.id)!.bottles && (
+                      <div className="border border-[#1a1a1a] p-4">
+                        <p className="text-[8px] font-sans uppercase tracking-widest text-[#333] mb-2">Bottiglie</p>
+                        <p className="font-mono text-[10px] text-white leading-relaxed">
+                          {getReservation(selectedTable.id)!.bottles}
+                        </p>
                       </div>
                     )}
 
-                    <div className="pt-4 flex gap-3">
-                      <button className="flex-1 py-3 bg-zinc-800 text-[9px] uppercase tracking-[0.2em] font-black hover:bg-zinc-700 transition-colors">Modifica</button>
-                      <button className="flex-1 py-3 bg-red-900/40 text-red-400 border border-red-900/50 text-[9px] uppercase tracking-[0.2em] font-black hover:bg-red-900/60 transition-colors">Libera</button>
+                    {getReservation(selectedTable.id)!.notes && (
+                      <div className="border-l-2 border-accent pl-4">
+                        <p className="text-[8px] font-sans uppercase tracking-widest text-accent mb-1">Note</p>
+                        <p className="text-xs font-sans text-[#555] italic leading-relaxed">
+                          "{getReservation(selectedTable.id)!.notes}"
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="flex gap-2 pt-2">
+                      <button className="flex-1 py-3 text-[8px] hv font-black uppercase tracking-widest border border-[#1a1a1a] text-[#333] hover:text-white hover:border-[#333] transition-all">
+                        Modifica
+                      </button>
+                      <button className="flex-1 py-3 text-[8px] hv font-black uppercase tracking-widest border border-[#300] text-[#555] hover:border-red-900 hover:text-red-500 transition-all">
+                        Libera
+                      </button>
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-4 pt-4">
-                    <p className="text-zinc-500 text-[10px] uppercase tracking-widest text-center leading-loose border-t border-border pt-6">Tavolo Libero</p>
+                  <div className="pt-2">
+                    <div className="border-t border-[#111] pt-5 mb-4 text-center">
+                      <span className="text-[8px] font-sans uppercase tracking-widest text-[#222]">Tavolo Libero</span>
+                    </div>
                     <button
                       onClick={() => setShowBookingModal(true)}
-                      className="w-full py-4 bg-transparent border border-accent text-accent rounded font-bold text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 hover:bg-accent hover:text-black transition-all"
-                    >
-                      <Plus size={14} /> Nuova Prenotazione
+                      className="group w-full py-4 border border-[#1a1a1a] text-[9px] hv font-black uppercase tracking-widest text-[#555] hover:border-accent hover:text-accent flex items-center justify-center gap-2 transition-all">
+                      <Plus size={12} /> Nuova Prenotazione
                     </button>
                   </div>
                 )}
@@ -235,6 +205,7 @@ export default function FloorPlanViewer({ event, floorPlan, reservations, curren
         </AnimatePresence>
       </aside>
 
+      {/* Booking modal */}
       {showBookingModal && selectedTable && (
         <BookingModal
           table={selectedTable}
@@ -257,93 +228,119 @@ export default function FloorPlanViewer({ event, floorPlan, reservations, curren
   );
 }
 
-function Row({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+/* ── InfoRow ─────────────────────────────────────────────── */
+function InfoRow({ label, value, accent, mono }: { label: string; value: string; accent?: boolean; mono?: boolean }) {
   return (
-    <div className="flex justify-between items-end border-b border-zinc-800 pb-2">
-      <span className="text-[10px] text-zinc-500 uppercase tracking-widest">{label}</span>
-      <span className={cn('text-sm font-semibold', accent ? 'text-accent uppercase tracking-widest serif' : '')}>{value}</span>
+    <div className="flex justify-between items-center py-2.5 border-b border-[#0d0d0d]">
+      <span className="text-[8px] font-sans uppercase tracking-widest text-[#2a2a2a]">{label}</span>
+      <span className={cn(
+        'text-[11px] font-sans',
+        accent ? 'hv font-black uppercase text-accent' : mono ? 'font-mono text-[#555]' : 'font-medium text-white'
+      )}>{value}</span>
     </div>
   );
 }
 
-function LegendItem({ color, label }: { color: string; label: string }) {
-  return (
-    <div className="flex items-center gap-2">
-      <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: color }} />
-      <span className="text-[8px] font-black uppercase tracking-[0.3em] text-zinc-400">{label}</span>
-    </div>
-  );
-}
-
-function BookingModal({ table, onClose, onSubmit }: { table: Table; onClose: () => void; onSubmit: (data: any) => void }) {
-  const [formData, setFormData] = useState({
-    customerName: '',
-    customerPhone: '',
+/* ── BookingModal ────────────────────────────────────────── */
+function BookingModal({ table, onClose, onSubmit }: {
+  table: Table;
+  onClose: () => void;
+  onSubmit: (data: any) => void;
+}) {
+  const [form, setForm] = useState({
+    customerName: '', customerPhone: '',
     guestsCount: table.capacity,
-    bottles: '',
-    budget: table.minSpend,
-    notes: '',
-    status: 'optioned' as any,
+    bottles: '', budget: table.minSpend,
+    notes: '', status: 'optioned' as any,
   });
+
+  const inp = "w-full bg-bg border border-[#1a1a1a] px-4 py-3 text-xs font-sans text-white placeholder-[#2a2a2a] outline-none transition-colors";
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/90 backdrop-blur-sm" onClick={onClose} />
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative w-full max-w-xl bg-card border border-border rounded shadow-2xl overflow-hidden"
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+        className="absolute inset-0 bg-black/90 backdrop-blur-sm" onClick={onClose} />
+
+      <motion.div
+        initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+        className="relative w-full max-w-lg bg-card border border-[#1a1a1a] overflow-hidden max-h-[90vh] flex flex-col"
       >
-        <div className="p-8 border-b border-border flex items-center justify-between bg-[#0c0c0d]">
+        <div className="h-[2px] bg-accent shrink-0" />
+
+        <div className="px-8 py-5 border-b border-[#111] flex items-center justify-between shrink-0">
           <div>
-            <h3 className="serif text-2xl italic text-white">Prenotazione Tavolo</h3>
-            <p className="text-zinc-500 text-[10px] uppercase tracking-widest mt-1">Slot: {table.name}</p>
+            <h3 className="hv font-black text-xl uppercase text-white">Prenotazione</h3>
+            <p className="text-[8px] font-sans uppercase tracking-widest text-[#333] mt-0.5">Tavolo {table.name} · Min €{table.minSpend}</p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-white/5 rounded text-zinc-500 transition-colors">
-            <X size={20} />
-          </button>
+          <button onClick={onClose} className="text-[#333] hover:text-white transition-colors p-1"><X size={18} /></button>
         </div>
 
-        <form className="p-8 space-y-6" onSubmit={(e) => { e.preventDefault(); onSubmit(formData); }}>
-          <div className="grid grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Anagrafica Cliente</label>
-              <input required className="w-full bg-bg border border-border rounded px-4 py-3 outline-none focus:border-accent/40 transition-colors text-xs uppercase tracking-widest" placeholder="NOME COMPLETO" value={formData.customerName} onChange={e => setFormData({ ...formData, customerName: e.target.value })} />
-            </div>
-            <div className="space-y-2">
-              <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Contatto</label>
-              <input required className="w-full bg-bg border border-border rounded px-4 py-3 outline-none focus:border-accent/40 transition-colors text-xs font-mono" placeholder="+39 ---" value={formData.customerPhone} onChange={e => setFormData({ ...formData, customerPhone: e.target.value })} />
-            </div>
-            <div className="space-y-2">
-              <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500">PAX</label>
-              <input type="number" className="w-full bg-bg border border-border rounded px-4 py-3 outline-none focus:border-accent/40 transition-colors text-xs" value={formData.guestsCount} onChange={e => setFormData({ ...formData, guestsCount: parseInt(e.target.value) })} />
-            </div>
-            <div className="space-y-2">
-              <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Budget (€)</label>
-              <input type="number" className="w-full bg-bg border border-border rounded px-4 py-3 outline-none focus:border-accent/40 transition-colors text-xs text-accent" value={formData.budget} onChange={e => setFormData({ ...formData, budget: parseInt(e.target.value) })} />
-            </div>
+        <form className="p-8 space-y-5 overflow-y-auto"
+          onSubmit={(e) => { e.preventDefault(); onSubmit(form); }}>
+          <div className="grid grid-cols-2 gap-4">
+            <BField label="Cliente">
+              <input required className={cn(inp, 'uppercase tracking-widest')} placeholder="NOME COMPLETO"
+                value={form.customerName} onChange={e => setForm({ ...form, customerName: e.target.value })} />
+            </BField>
+            <BField label="Contatto">
+              <input required className={cn(inp, 'font-mono')} placeholder="+39 ---"
+                value={form.customerPhone} onChange={e => setForm({ ...form, customerPhone: e.target.value })} />
+            </BField>
+            <BField label="PAX">
+              <input type="number" className={inp}
+                value={form.guestsCount} onChange={e => setForm({ ...form, guestsCount: +e.target.value })} />
+            </BField>
+            <BField label="Budget €">
+              <input type="number" className={cn(inp, 'text-accent')}
+                value={form.budget} onChange={e => setForm({ ...form, budget: +e.target.value })} />
+            </BField>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Pre-ordine Bottiglie</label>
-            <input className="w-full bg-bg border border-border rounded px-4 py-3 outline-none focus:border-accent/40 transition-colors text-xs uppercase tracking-widest" placeholder="es. 2x CHAMPAGNE, 1x VODKA" value={formData.bottles} onChange={e => setFormData({ ...formData, bottles: e.target.value.toUpperCase() })} />
+          <BField label="Bottiglie">
+            <input className={cn(inp, 'uppercase tracking-widest')} placeholder="2× CHAMPAGNE, 1× VODKA"
+              value={form.bottles} onChange={e => setForm({ ...form, bottles: e.target.value.toUpperCase() })} />
+          </BField>
+
+          <BField label="Note">
+            <textarea rows={2} className={cn(inp, 'resize-none italic')} placeholder="NOTE..."
+              value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
+          </BField>
+
+          {/* Status toggle */}
+          <div className="flex gap-3">
+            {(['optioned', 'confirmed'] as const).map(s => (
+              <button key={s} type="button"
+                onClick={() => setForm({ ...form, status: s })}
+                className={cn(
+                  'flex-1 py-3 text-[9px] hv font-black uppercase tracking-widest border transition-all',
+                  form.status === s
+                    ? s === 'confirmed'
+                      ? 'bg-accent text-black border-accent'
+                      : 'bg-[#F0E80015] text-accent border-accent/40'
+                    : 'bg-transparent text-[#333] border-[#1a1a1a] hover:border-[#333]'
+                )}>
+                {s === 'optioned' ? 'Opziona' : 'Conferma'}
+              </button>
+            ))}
           </div>
 
-          <div className="space-y-2">
-            <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Note Extra</label>
-            <textarea rows={2} className="w-full bg-bg border border-border rounded px-4 py-3 outline-none focus:border-accent/40 transition-colors text-xs uppercase tracking-widest resize-none italic" placeholder="NOTE..." value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })} />
-          </div>
-
-          <div className="flex gap-4 pt-2">
-            <button type="button" onClick={() => setFormData({ ...formData, status: 'optioned' })} className={cn('flex-1 py-4 font-black text-[9px] uppercase tracking-[0.2em] transition-all border', formData.status === 'optioned' ? 'bg-amber-500/20 text-amber-500 border-amber-500/50' : 'bg-transparent text-zinc-700 border-border')}>Opziona</button>
-            <button type="button" onClick={() => setFormData({ ...formData, status: 'confirmed' })} className={cn('flex-1 py-4 font-black text-[9px] uppercase tracking-[0.2em] transition-all border', formData.status === 'confirmed' ? 'bg-accent text-black border-accent' : 'bg-transparent text-zinc-700 border-border')}>Conferma</button>
-          </div>
-
-          <button type="submit" className="w-full py-5 bg-accent text-black font-black text-xs uppercase tracking-[0.3em] hover:opacity-90 transition-all">
+          <button type="submit"
+            className="w-full py-4 bg-accent text-black text-[10px] hv font-black uppercase tracking-[0.3em] hover:bg-white transition-colors">
             Invia al Sistema
           </button>
         </form>
       </motion.div>
+    </div>
+  );
+}
+
+function BField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-1.5">
+      <label className="text-[8px] font-sans font-bold uppercase tracking-widest text-[#2a2a2a]">{label}</label>
+      {children}
     </div>
   );
 }

@@ -1,42 +1,67 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;1,600;1,900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,300;0,400;0,500;0,700;0,900;1,300;1,400;1,700&family=Roboto+Mono:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "Playfair Display", serif;
-  
-  --color-bg: #09090b;
-  --color-card: #111113;
-  --color-border: #27272a;
-  --color-accent: #d4af37;
-  --color-accent-muted: rgba(212, 175, 55, 0.15);
+  --font-sans: 'Roboto', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Roboto Mono', ui-monospace, monospace;
+
+  --color-bg:           #000000;
+  --color-card:         #0d0d0d;
+  --color-border:       #1a1a1a;
+  --color-accent:       #F0E800;
+  --color-accent-muted: rgba(240, 232, 0, 0.07);
 }
+
+/* ── Global ──────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
 
 body {
-  @apply bg-bg text-zinc-50 font-sans;
+  @apply bg-bg text-white font-sans;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-.serif {
-  @apply font-serif;
+/* ── Helvetica display class ─────────────────────────────── */
+.hv {
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
+/* ── Floor plan canvas grid ──────────────────────────────── */
 .floorplan-grid {
-  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: 24px 24px;
+  background-image: radial-gradient(circle, rgba(255,255,255,0.018) 1px, transparent 1px);
+  background-size: 20px 20px;
 }
 
-::-webkit-scrollbar {
-  width: 6px;
+/* ── Accent glow ─────────────────────────────────────────── */
+.glow {
+  box-shadow: 0 0 48px rgba(240, 232, 0, 0.14);
 }
 
-::-webkit-scrollbar-track {
-  @apply bg-transparent;
+/* ── Animated status dot ─────────────────────────────────── */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.2; }
+}
+.blink { animation: blink 1.8s ease-in-out infinite; }
+
+/* ── Animated slide-in bar ───────────────────────────────── */
+@keyframes grow-x {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
 }
 
-::-webkit-scrollbar-thumb {
-  @apply bg-border rounded-full;
-}
+/* ── Scrollbar ───────────────────────────────────────────── */
+::-webkit-scrollbar            { width: 3px; }
+::-webkit-scrollbar-track      { background: transparent; }
+::-webkit-scrollbar-thumb      { background: #1e1e1e; border-radius: 0; }
+::-webkit-scrollbar-thumb:hover{ background: #2e2e2e; }
 
-::-webkit-scrollbar-thumb:hover {
-  @apply bg-zinc-700;
+/* ── Selection ───────────────────────────────────────────── */
+::selection { background: #F0E800; color: #000; }
+
+/* ── Input/Textarea focus ring ───────────────────────────── */
+input:focus-visible,
+textarea:focus-visible {
+  outline: 1px solid #F0E800;
+  outline-offset: 0px;
 }
