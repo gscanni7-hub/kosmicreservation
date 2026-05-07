@@ -57,6 +57,18 @@ export default function App() {
   const venueEvents   = selectedVenue ? events.filter(e => e.venueId === selectedVenue.id) : [];
   const showBack      = view === 'plan' || view === 'venue-events';
 
+  const activeEventIds = new Set(activeEvents.map(e => e.id));
+  const totalTables = activeEvents.reduce((sum, event) => {
+    const venue = venues.find(v => v.id === event.venueId);
+    const fp = venue?.floorPlans.find(f => f.id === event.floorPlanId) ?? venue?.floorPlans[0];
+    return sum + (fp?.tables.length ?? 0);
+  }, 0);
+  const bookedReservations = reservations.filter(
+    r => (r.status === 'confirmed' || r.status === 'optioned') && activeEventIds.has(r.eventId)
+  );
+  const occupancyPct = totalTables > 0 ? Math.round((bookedReservations.length / totalTables) * 100) : 0;
+  const revenueEst   = bookedReservations.reduce((sum, r) => sum + r.budget, 0);
+
   const headerTitle = () => {
     if (view === 'venues')        return 'Venues';
     if (view === 'venue-events')  return selectedVenue?.name ?? '';
@@ -175,6 +187,8 @@ export default function App() {
                 view={view}
                 onNav={(v) => { setView(v as AppView); setSelectedVenue(null); setSelectedEvent(null); setMobileSidebarOpen(false); }}
                 onLogout={handleLogout}
+                occupancyPct={occupancyPct}
+                revenueEst={revenueEst}
               />
             </motion.div>
           </>
@@ -186,6 +200,8 @@ export default function App() {
         <SidebarContent user={user} view={view}
           onNav={(v) => { setView(v as AppView); setSelectedVenue(null); setSelectedEvent(null); }}
           onLogout={handleLogout}
+          occupancyPct={occupancyPct}
+          revenueEst={revenueEst}
         />
       </aside>
 
@@ -349,11 +365,16 @@ export default function App() {
 }
 
 /* ── SidebarContent ──────────────────────────────────────── */
-function SidebarContent({ user, view, onNav, onLogout }: {
+function SidebarContent({ user, view, onNav, onLogout, occupancyPct = 0, revenueEst = 0 }: {
   user: UserProfile; view: string;
   onNav: (v: string) => void;
   onLogout: () => void;
+  occupancyPct?: number;
+  revenueEst?: number;
 }) {
+  const revenueDisplay = revenueEst >= 1000
+    ? `€${(revenueEst / 1000).toFixed(1)}K`
+    : `€${revenueEst}`;
   return (
     <>
       {/* Brand */}
@@ -374,17 +395,17 @@ function SidebarContent({ user, view, onNav, onLogout }: {
         <div className="px-6 py-6 border-b border-[#111] space-y-5 shrink-0">
           <div>
             <div className="hv font-black leading-none text-white" style={{ fontSize: 52 }}>
-              60<span className="text-[28px] text-[#222]">%</span>
+              {occupancyPct}<span className="text-[28px] text-[#222]">%</span>
             </div>
             <div className="mt-2.5 h-px bg-[#111] relative overflow-hidden">
               <motion.div className="h-px bg-accent absolute inset-y-0 left-0"
-                initial={{ width: 0 }} animate={{ width: '60%' }}
+                initial={{ width: 0 }} animate={{ width: `${occupancyPct}%` }}
                 transition={{ duration: 1.2, delay: 0.3, ease: 'easeOut' }} />
             </div>
             <p className="text-[9px] font-sans uppercase tracking-[0.35em] text-[#333] mt-1.5">Occupancy</p>
           </div>
           <div>
-            <div className="hv font-black text-accent leading-none" style={{ fontSize: 36 }}>€18.4K</div>
+            <div className="hv font-black text-accent leading-none" style={{ fontSize: 36 }}>{revenueDisplay}</div>
             <p className="text-[9px] font-sans uppercase tracking-[0.35em] text-[#333] mt-1">Revenue Est.</p>
           </div>
         </div>
