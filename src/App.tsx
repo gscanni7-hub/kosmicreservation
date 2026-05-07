@@ -31,6 +31,7 @@ export default function App() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [editingFloorPlan, setEditingFloorPlan] = useState<{ venueId: string; fp: FloorPlan } | null>(null);
   const [showNewClubModal, setShowNewClubModal] = useState(false);
+  const [editingVenue, setEditingVenue] = useState<Venue | null>(null);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
 
   const handleLogin = (role: 'admin' | 'pr') => {
@@ -253,7 +254,10 @@ export default function App() {
                       transition={{ delay: i * 0.06, duration: 0.22 }}>
                       <VenueCard venue={venue}
                         eventCount={events.filter(e => e.venueId === venue.id).length}
-                        onClick={() => openVenue(venue)} />
+                        onClick={() => openVenue(venue)}
+                        onEdit={(e) => { e.stopPropagation(); setEditingVenue(venue); }}
+                        onDelete={(e) => { e.stopPropagation(); setVenues(prev => prev.filter(v => v.id !== venue.id)); }}
+                      />
                     </motion.div>
                   ))}
                 </div>
@@ -449,6 +453,17 @@ export default function App() {
         />
       )}
 
+      {editingVenue && (
+        <NewClubModal
+          initialData={{ name: editingVenue.name, address: editingVenue.address }}
+          onClose={() => setEditingVenue(null)}
+          onSubmit={({ name, address }) => {
+            setVenues(prev => prev.map(v => v.id === editingVenue.id ? { ...v, name, address } : v));
+            setEditingVenue(null);
+          }}
+        />
+      )}
+
       {showNewClubModal && (
         <NewClubModal
           onClose={() => setShowNewClubModal(false)}
@@ -614,19 +629,40 @@ function EmptyState({ icon, label, children }: { icon: React.ReactNode; label: s
 }
 
 /* ── VenueCard ───────────────────────────────────────────── */
-function VenueCard({ venue, eventCount, onClick }: { venue: Venue; eventCount: number; onClick: () => void }) {
+function VenueCard({ venue, eventCount, onClick, onEdit, onDelete }: {
+  venue: Venue; eventCount: number; onClick: () => void;
+  onEdit?: (e: React.MouseEvent) => void;
+  onDelete?: (e: React.MouseEvent) => void;
+}) {
   return (
     <motion.div
       onClick={onClick}
       whileHover={{ y: -2 }}
       className="group bg-card border border-[#1a1a1a] cursor-pointer overflow-hidden flex flex-col relative"
     >
-      {/* Top accent bar */}
       <div className="h-[2px] w-0 group-hover:w-full bg-accent transition-all duration-500 origin-left" />
 
       <div className="p-7 flex flex-col gap-7 flex-1">
-        <div className="w-9 h-9 border border-[#222] flex items-center justify-center group-hover:border-accent/30 transition-colors">
-          <Building2 size={15} className="text-[#333] group-hover:text-accent transition-colors" />
+        <div className="flex items-start justify-between">
+          <div className="w-9 h-9 border border-[#222] flex items-center justify-center group-hover:border-accent/30 transition-colors shrink-0">
+            <Building2 size={15} className="text-[#333] group-hover:text-accent transition-colors" />
+          </div>
+          {(onEdit || onDelete) && (
+            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              {onEdit && (
+                <button onClick={onEdit}
+                  className="w-7 h-7 flex items-center justify-center text-[#333] hover:text-accent transition-colors">
+                  <Pencil size={12} />
+                </button>
+              )}
+              {onDelete && (
+                <button onClick={onDelete}
+                  className="w-7 h-7 flex items-center justify-center text-[#333] hover:text-red-500 transition-colors">
+                  <Trash2 size={12} />
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex-1">
@@ -879,11 +915,13 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 /* ── NewClubModal ────────────────────────────────────────── */
-function NewClubModal({ onClose, onSubmit }: {
+function NewClubModal({ onClose, onSubmit, initialData }: {
   onClose: () => void;
   onSubmit: (d: { name: string; address: string }) => void;
+  initialData?: { name: string; address: string };
 }) {
-  const [form, setForm] = useState({ name: '', address: '' });
+  const isEdit = !!initialData;
+  const [form, setForm] = useState({ name: initialData?.name ?? '', address: initialData?.address ?? '' });
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -900,8 +938,8 @@ function NewClubModal({ onClose, onSubmit }: {
         <div className="h-[2px] bg-accent" />
         <div className="px-8 py-6 border-b border-[#111] flex items-center justify-between">
           <div>
-            <h3 className="hv font-black text-xl uppercase text-white">Nuovo Club</h3>
-            <p className="text-[9px] font-sans uppercase tracking-widest text-[#333] mt-1">Crea il locale e poi la sua piantina</p>
+            <h3 className="hv font-black text-xl uppercase text-white">{isEdit ? 'Modifica Club' : 'Nuovo Club'}</h3>
+            <p className="text-[9px] font-sans uppercase tracking-widest text-[#333] mt-1">{isEdit ? 'Aggiorna nome e indirizzo' : 'Crea il locale e poi la sua piantina'}</p>
           </div>
           <button onClick={onClose} className="text-[#333] hover:text-white transition-colors p-1"><X size={18} /></button>
         </div>
@@ -925,7 +963,7 @@ function NewClubModal({ onClose, onSubmit }: {
             </button>
             <button type="submit"
               className="flex-1 py-3.5 text-[9px] hv font-black uppercase tracking-widest bg-accent text-black hover:bg-white transition-colors">
-              Avanti
+              {isEdit ? 'Salva Modifiche' : 'Avanti'}
             </button>
           </div>
         </form>
