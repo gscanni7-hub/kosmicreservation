@@ -73,8 +73,14 @@ export default function FloorPlanViewer({ event, floorPlan, reservations, curren
 
                 return (
                   <Group key={table.id} x={table.x} y={table.y}
-                    onClick={() => setSelectedTable(table)}
-                    onTap={() => setSelectedTable(table)}>
+                    onClick={() => {
+                      setSelectedTable(table);
+                      if (status === 'free') setShowBookingModal(true);
+                    }}
+                    onTap={() => {
+                      setSelectedTable(table);
+                      if (status === 'free') setShowBookingModal(true);
+                    }}>
                     {table.shape === 'rect' ? (
                       <Rect width={table.width} height={table.height}
                         fill={color} opacity={sel ? 0.28 : 0.14}
@@ -248,11 +254,14 @@ function BookingModal({ table, onClose, onSubmit }: {
   onClose: () => void;
   onSubmit: (data: any) => void;
 }) {
+  const calcBudget = (guests: number) =>
+    table.minSpend + Math.max(0, (guests - 10) * 30);
+
   const [form, setForm] = useState({
     customerName: '',
     prName: '',
     guestsCount: table.capacity,
-    bottles: '', budget: table.minSpend,
+    bottles: '', budget: calcBudget(table.capacity),
     notes: '',
   });
 
@@ -292,7 +301,10 @@ function BookingModal({ table, onClose, onSubmit }: {
             </BField>
             <BField label="PAX">
               <input type="number" className={inp}
-                value={form.guestsCount} onChange={e => setForm({ ...form, guestsCount: +e.target.value })} />
+                value={form.guestsCount} onChange={e => {
+                  const guests = +e.target.value;
+                  setForm({ ...form, guestsCount: guests, budget: calcBudget(guests) });
+                }} />
             </BField>
             <BField label="Budget €">
               <input type="number" className={cn(inp, 'text-accent')}
