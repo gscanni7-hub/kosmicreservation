@@ -864,18 +864,36 @@ function ReservationsTable({ reservations, userRole, events }: {
   userRole: string;
   events: Event[];
 }) {
-  const sorted = [...reservations].sort((a, b) => a.customerName.localeCompare(b.customerName));
+  const colCount = userRole === 'admin' ? 6 : 5;
+
+  // Group reservations by event, sorted alphabetically within each group
+  const groups: { event: Event | undefined; eventId: string; rows: Reservation[] }[] =
+    Object.entries(
+      reservations.reduce<Record<string, Reservation[]>>((acc, r) => {
+        (acc[r.eventId] ??= []).push(r);
+        return acc;
+      }, {})
+    ).map(([eventId, rows]) => ({
+      eventId,
+      event: events.find(e => e.id === eventId),
+      rows: [...rows].sort((a, b) => a.customerName.localeCompare(b.customerName)),
+    }));
+
+  const allSorted = groups.flatMap(g => g.rows);
 
   const exportCSV = () => {
-    const headers = ['Tavolo', 'Cliente', 'PR', 'PAX', 'Budget €', 'Bottiglie'];
-    const rows = sorted.map(r => [
-      r.tableName ?? r.tableId,
-      r.customerName,
-      r.prName,
-      r.guestsCount,
-      r.budget,
-      r.bottles,
-    ]);
+    const headers = ['Evento', 'Tavolo', 'Cliente', 'PR', 'PAX', 'Budget €', 'Bottiglie'];
+    const rows = groups.flatMap(g =>
+      g.rows.map(r => [
+        g.event?.name ?? g.eventId,
+        r.tableName ?? r.tableId,
+        r.customerName,
+        r.prName,
+        r.guestsCount,
+        r.budget,
+        r.bottles,
+      ])
+    );
     const csv = [headers, ...rows]
       .map(row => row.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(','))
       .join('\n');
@@ -892,95 +910,98 @@ function ReservationsTable({ reservations, userRole, events }: {
     <div className="bg-card border border-[#2a2a2a] overflow-hidden">
       <div className="px-7 py-5 border-b border-[#1e1e1e] flex justify-between items-center">
         <h2 className="hv font-black text-xl uppercase text-white">Prenotazioni</h2>
-        <div className="flex gap-2">
-          <IconBtn onClick={exportCSV}><Download size={14} /></IconBtn>
+        <IconBtn onClick={exportCSV}><Download size={14} /></IconBtn>
+      </div>
+
+      {reservations.length === 0 ? (
+        <div className="px-7 py-24 text-center">
+          <p className="text-[9px] font-sans uppercase tracking-[0.4em] text-[#444]">Nessuna Prenotazione</p>
         </div>
-      </div>
-
-      {/* Mobile card list */}
-      <div className="sm:hidden divide-y divide-[#0d0d0d]">
-        {reservations.length === 0 ? (
-          <div className="px-5 py-16 text-center">
-            <p className="text-[9px] font-sans uppercase tracking-[0.4em] text-[#444]">Nessuna Prenotazione</p>
-          </div>
-        ) : sorted.map(res => (
-          <div key={res.id} className="p-5 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className={cn('w-1.5 h-1.5 rounded-full shrink-0',
-                  res.status === 'confirmed' ? 'bg-accent blink' : 'bg-[#222]'
-                )} />
-                <span className={cn('text-[9px] font-sans uppercase tracking-widest',
-                  res.status === 'confirmed' ? 'text-accent' : 'text-[#777]'
-                )}>{res.status}</span>
-              </div>
-              <span className="hv font-black text-accent text-lg">€{res.budget}</span>
-            </div>
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="hv font-bold text-sm uppercase text-white truncate">{res.customerName}</p>
-                {userRole === 'admin' && <p className="text-[9px] font-sans text-[#777] uppercase tracking-widest mt-0.5">{res.prName}</p>}
-              </div>
-              <div className="text-right shrink-0">
-                <p className="hv font-bold text-sm text-white">{res.tableName ?? res.tableId}</p>
-                <p className="text-[9px] font-sans text-[#777] mt-0.5">{res.guestsCount} pax</p>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="hidden sm:block overflow-x-auto">
-        <table className="w-full text-left border-collapse min-w-[600px]">
-          <thead>
-            <tr className="border-b border-[#1e1e1e]">
-              {['Status', 'Tavolo', 'Ospite', ...(userRole === 'admin' ? ['PR'] : []), 'Pax', 'Budget'].map(h => (
-                <th key={h} className="px-7 py-4 text-[8px] font-sans font-bold uppercase tracking-[0.35em] text-[#666]">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {sorted.map(res => (
-              <tr key={res.id} className="border-b border-[#1a1a1a] hover:bg-white/[0.01] transition-colors group">
-                <td className="px-7 py-5">
-                  <div className="flex items-center gap-2.5">
-                    <span className={cn('w-1.5 h-1.5 rounded-full shrink-0',
-                      res.status === 'confirmed' ? 'bg-accent blink' : 'bg-[#222]'
-                    )} />
-                    <span className={cn('text-[9px] font-sans uppercase tracking-widest',
-                      res.status === 'confirmed' ? 'text-accent' : 'text-[#777]'
-                    )}>{res.status}</span>
-                  </div>
-                </td>
-                <td className="px-7 py-5">
-                  <span className="hv font-bold text-sm text-white">{res.tableName ?? res.tableId}</span>
-                </td>
-                <td className="px-7 py-5">
-                  <p className="hv font-bold text-[11px] uppercase text-white">{res.customerName}</p>
-                  <p className="font-mono text-[9px] text-[#777] mt-0.5">{res.customerPhone}</p>
-                </td>
-                {userRole === 'admin' && (
-                  <td className="px-7 py-5">
-                    <span className="text-[9px] font-sans text-[#777] uppercase tracking-widest group-hover:text-accent transition-colors">{res.prName}</span>
-                  </td>
+      ) : (
+        <div className="space-y-0">
+          {groups.map(({ event, eventId, rows }) => (
+            <div key={eventId}>
+              {/* Event header */}
+              <div className="px-7 py-3 bg-[#0a0a0a] border-b border-[#1e1e1e] flex items-center gap-4">
+                <span className="hv font-black text-sm uppercase text-white tracking-widest">
+                  {event?.name ?? eventId}
+                </span>
+                {event && (
+                  <span className="font-mono text-[9px] text-[#555]">{event.date}</span>
                 )}
-                <td className="px-7 py-5">
-                  <span className="hv font-black text-xl text-[#777]">{res.guestsCount}</span>
-                </td>
-                <td className="px-7 py-5 text-right">
-                  <span className="hv font-black text-xl text-accent">€{res.budget}</span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                <span className="ml-auto text-[9px] font-sans uppercase tracking-widest text-[#555]">
+                  {rows.length} {rows.length === 1 ? 'prenotazione' : 'prenotazioni'}
+                </span>
+              </div>
 
-        {reservations.length === 0 && (
-          <div className="px-7 py-24 text-center">
-            <p className="text-[9px] font-sans uppercase tracking-[0.4em] text-[#444]">Nessuna Prenotazione</p>
-          </div>
-        )}
-      </div>
+              {/* Mobile cards */}
+              <div className="sm:hidden divide-y divide-[#1a1a1a]">
+                {rows.map(res => (
+                  <div key={res.id} className="p-5 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className={cn('w-1.5 h-1.5 rounded-full shrink-0',
+                          res.status === 'confirmed' ? 'bg-accent blink' : 'bg-[#222]'
+                        )} />
+                        <span className={cn('text-[9px] font-sans uppercase tracking-widest',
+                          res.status === 'confirmed' ? 'text-accent' : 'text-[#777]'
+                        )}>{res.status}</span>
+                      </div>
+                      <span className="hv font-black text-accent text-lg">€{res.budget}</span>
+                    </div>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="hv font-bold text-sm uppercase text-white truncate">{res.customerName}</p>
+                        {userRole === 'admin' && <p className="text-[9px] font-sans text-[#777] uppercase tracking-widest mt-0.5">{res.prName}</p>}
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="hv font-bold text-sm text-white">{res.tableName ?? res.tableId}</p>
+                        <p className="text-[9px] font-sans text-[#777] mt-0.5">{res.guestsCount} pax</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop table */}
+              <div className="hidden sm:block overflow-x-auto">
+                <table className="w-full text-left border-collapse min-w-[600px]">
+                  <thead>
+                    <tr className="border-b border-[#1e1e1e]">
+                      {['Tavolo', 'Cliente', ...(userRole === 'admin' ? ['PR'] : []), 'Pax', 'Budget'].map(h => (
+                        <th key={h} className="px-7 py-3 text-[8px] font-sans font-bold uppercase tracking-[0.35em] text-[#555]">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map(res => (
+                      <tr key={res.id} className="border-b border-[#1a1a1a] hover:bg-white/[0.01] transition-colors group">
+                        <td className="px-7 py-4">
+                          <span className="hv font-bold text-sm text-white">{res.tableName ?? res.tableId}</span>
+                        </td>
+                        <td className="px-7 py-4">
+                          <p className="hv font-bold text-[11px] uppercase text-white">{res.customerName}</p>
+                        </td>
+                        {userRole === 'admin' && (
+                          <td className="px-7 py-4">
+                            <span className="text-[9px] font-sans text-[#777] uppercase tracking-widest group-hover:text-accent transition-colors">{res.prName}</span>
+                          </td>
+                        )}
+                        <td className="px-7 py-4">
+                          <span className="hv font-black text-lg text-[#777]">{res.guestsCount}</span>
+                        </td>
+                        <td className="px-7 py-4 text-right">
+                          <span className="hv font-black text-lg text-accent">€{res.budget}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
