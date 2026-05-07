@@ -20,10 +20,21 @@ export interface Table {
   minSpend: number;
 }
 
+export interface StaticArea {
+  id: string;
+  label: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export interface FloorPlan {
   id: string;
   name: string;
-  imageUrl: string;
+  canvasWidth?: number;
+  canvasHeight?: number;
+  staticAreas?: StaticArea[];
   tables: Table[];
 }
 
@@ -58,6 +69,6 @@ export interface Reservation {
 export interface Venue {
   id: string;
   name: string;
-  ownerId: string;
   address: string;
+  floorPlans: FloorPlan[];
 }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Stage, Layer, Image as KonvaImage, Rect, Circle, Text, Group, Transformer } from 'react-konva';
+import { Stage, Layer, Rect, Circle, Text, Group, Transformer } from 'react-konva';
 import { FloorPlan, Table } from '../../types';
-import { Plus, Trash2, Save, Move, Layers, Square, Circle as CircleIcon, PenTool } from 'lucide-react';
+import { Plus, Trash2, Save, Move, Square, Circle as CircleIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '../../lib/utils';
 
@@ -10,20 +10,11 @@ interface FloorPlanEditorProps {
 }
 
 export default function FloorPlanEditor({ floorPlan }: FloorPlanEditorProps) {
-  const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [tables, setTables] = useState<Table[]>(floorPlan.tables);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
   const backgroundLayerRef = useRef<any>(null);
-
-  useEffect(() => {
-    const img = new window.Image();
-    img.src = floorPlan.imageUrl;
-    img.onload = () => {
-      setImage(img);
-    };
-  }, [floorPlan.imageUrl]);
 
   useEffect(() => {
     const updateDimensions = () => {
@@ -120,15 +111,7 @@ export default function FloorPlanEditor({ floorPlan }: FloorPlanEditorProps) {
             }}
           >
             <Layer ref={backgroundLayerRef}>
-              {image && (
-                <KonvaImage
-                  image={image}
-                  width={dimensions.width}
-                  height={dimensions.height}
-                  opacity={0.1}
-                />
-              )}
-              
+
               {tables.map(table => (
                 <TableShape 
                   key={table.id}
