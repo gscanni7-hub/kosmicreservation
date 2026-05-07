@@ -1,0 +1,111 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Information about venue staff (admins and PRs)",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["admin", "pr"] },
+        "displayName": { "type": "string" }
+      },
+      "required": ["email", "role"]
+    },
+    "Venue": {
+      "title": "Venue",
+      "description": "A physical location (club, bar, etc.)",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "address": { "type": "string" }
+      },
+      "required": ["name", "ownerId"]
+    },
+    "Event": {
+      "title": "Event",
+      "description": "A specific night or occurrence at a venue",
+      "type": "object",
+      "properties": {
+        "venueId": { "type": "string" },
+        "name": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "description": { "type": "string" },
+        "floorPlanId": { "type": "string" },
+        "status": { "type": "string", "enum": ["draft", "active", "completed"] }
+      },
+      "required": ["venueId", "name", "date", "floorPlanId", "status"]
+    },
+    "FloorPlan": {
+      "title": "Floor Plan",
+      "description": "The layout of a venue with tables",
+      "type": "object",
+      "properties": {
+        "venueId": { "type": "string" },
+        "name": { "type": "string" },
+        "imageUrl": { "type": "string", "format": "uri" },
+        "tables": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "name": { "type": "string" },
+              "x": { "type": "number" },
+              "y": { "type": "number" },
+              "width": { "type": "number" },
+              "height": { "type": "number" },
+              "shape": { "type": "string", "enum": ["rect", "circle"] },
+              "area": { "type": "string" },
+              "capacity": { "type": "number" },
+              "minSpend": { "type": "number" }
+            }
+          }
+        }
+      },
+      "required": ["venueId", "name", "imageUrl", "tables"]
+    },
+    "Reservation": {
+      "title": "Reservation",
+      "description": "A table booking for an event",
+      "type": "object",
+      "properties": {
+        "eventId": { "type": "string" },
+        "tableId": { "type": "string" },
+        "prId": { "type": "string" },
+        "prName": { "type": "string" },
+        "customerName": { "type": "string" },
+        "customerPhone": { "type": "string" },
+        "guestsCount": { "type": "number" },
+        "bottles": { "type": "string" },
+        "budget": { "type": "number" },
+        "notes": { "type": "string" },
+        "status": { "type": "string", "enum": ["optioned", "confirmed", "blocked"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["eventId", "tableId", "prId", "customerName", "status"]
+    }
+  },
+  "firestore": {
+    "profiles/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profiles and roles"
+    },
+    "venues/{venueId}": {
+      "schema": "Venue",
+      "description": "Venue details"
+    },
+    "events/{eventId}": {
+      "schema": "Event",
+      "description": "Events happening at venues"
+    },
+    "floorPlans/{floorPlanId}": {
+      "schema": "FloorPlan",
+      "description": "Room layouts"
+    },
+    "reservations/{reservationId}": {
+      "schema": "Reservation",
+      "description": "Table bookings"
+    }
+  }
+}

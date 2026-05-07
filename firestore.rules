@@ -1,0 +1,84 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Catch-all deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helpers
+    function isSignedIn() { return request.auth != null; }
+    function isVerified() { return isSignedIn() && request.auth.token.email_verified == true; }
+    function isAdmin() { return isSignedIn() && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin'; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+
+    // Validation Functions
+    function isValidProfile(data) {
+      return data.email is string && data.email.size() < 128 &&
+             data.role in ['admin', 'pr'] &&
+             data.displayName is string && data.displayName.size() < 128;
+    }
+
+    function isValidReservation(data) {
+      return isValidId(data.eventId) && isValidId(data.tableId) &&
+             data.customerName is string && data.customerName.size() < 128 &&
+             data.status in ['optioned', 'confirmed', 'blocked'] &&
+             data.guestsCount is number && data.guestsCount > 0 &&
+             data.budget is number && data.budget >= 0;
+    }
+
+    // Profiles
+    match /profiles/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isVerified() && isOwner(userId) && isValidProfile(incoming());
+      allow update: if isVerified() && isOwner(userId) && isValidProfile(incoming()) && !incoming().diff(existing()).affectedKeys().hasAny(['role']);
+    }
+
+    // Venues
+    match /venues/{venueId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Events
+    match /events/{eventId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Floor Plans
+    match /floorPlans/{floorPlanId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Reservations
+    match /reservations/{reservationId} {
+      allow read: if isSignedIn(); // In production, we'd restrict more, but for list queries to work well we check resource data
+      allow list: if isSignedIn();
+      
+      allow create: if isVerified() && (
+        isAdmin() || (
+          incoming().prId == request.auth.uid && 
+          isValidReservation(incoming())
+        )
+      );
+
+      allow update: if isVerified() && (
+        isAdmin() || (
+          existing().prId == request.auth.uid &&
+          incoming().prId == existing().prId &&
+          isValidReservation(incoming()) &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['status', 'customerName', 'customerPhone', 'guestsCount', 'bottles', 'budget', 'notes'])
+        )
+      );
+
+      allow delete: if isAdmin();
+    }
+  }
+}
