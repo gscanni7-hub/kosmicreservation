@@ -69,7 +69,7 @@ export default function FloorPlanViewer({
   };
 
   return (
-    <div className="flex flex-col lg:flex-row h-full gap-5">
+    <div className="flex flex-col lg:flex-row h-full gap-0 lg:gap-5">
       {/* Canvas + legend wrapper */}
       <div className="flex-1 flex flex-col gap-0 min-w-0">
         <div ref={containerRef}
@@ -139,7 +139,7 @@ export default function FloorPlanViewer({
       </div>
 
       {/* Side panel */}
-      <aside className="w-full lg:w-72 xl:w-80 flex flex-col shrink-0">
+      <aside className="hidden lg:flex lg:w-72 xl:w-80 flex-col shrink-0">
         <AnimatePresence mode="wait">
           {!selectedTable ? (
             <motion.div key="prompt"
@@ -230,6 +230,80 @@ export default function FloorPlanViewer({
         </AnimatePresence>
       </aside>
 
+      {/* Mobile bottom sheet — table info panel */}
+      <AnimatePresence>
+        {selectedTable && (
+          <>
+            <motion.div
+              className="lg:hidden fixed inset-0 z-40 bg-black/60"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setSelectedTable(null)}
+            />
+            <motion.div
+              className="lg:hidden fixed inset-x-0 bottom-0 z-50 bg-[#0c0c0c] border-t border-[#1a1a1a] rounded-t-2xl overflow-hidden max-h-[70vh] flex flex-col"
+              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+            >
+              <div className="w-10 h-1 bg-[#2a2a2a] rounded-full mx-auto mt-3 shrink-0" />
+              <div className="px-5 py-4 border-b border-[#111] flex items-center justify-between shrink-0">
+                <div>
+                  <h3 className="hv font-black uppercase text-white text-base">Tavolo {selectedTable.name}</h3>
+                  <p className="text-[8px] font-sans uppercase tracking-widest text-[#2a2a2a] mt-0.5">{selectedTable.area}</p>
+                </div>
+                <button onClick={() => setSelectedTable(null)} className="text-[#333] hover:text-white transition-colors p-1">
+                  <X size={15} />
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-5 space-y-5">
+                <div className="space-y-0">
+                  <InfoRow label="Pax"        value={String(selectedTable.capacity)} />
+                  <InfoRow label="Min. Spesa" value={`€${selectedTable.minSpend}`} accent />
+                  <InfoRow label="Stato"      value={getStatus(selectedTable.id)} accent />
+                </div>
+                {(() => {
+                  const res = getReservation(selectedTable.id);
+                  if (!res) return null;
+                  const allowed = canModify(res);
+                  return (
+                    <div className="space-y-4">
+                      <div className="space-y-0">
+                        <InfoRow label="Cliente" value={res.customerName} />
+                        <InfoRow label="PR"      value={res.prName} accent />
+                        <InfoRow label="Pax"     value={String(res.guestsCount)} />
+                        <InfoRow label="Budget"  value={`€${res.budget}`} accent />
+                      </div>
+                      {res.bottles && (
+                        <div className="border border-[#1a1a1a] p-3">
+                          <p className="text-[8px] font-sans uppercase tracking-widest text-[#333] mb-1.5">Bottiglie</p>
+                          <p className="font-mono text-[10px] text-white">{res.bottles}</p>
+                        </div>
+                      )}
+                      {allowed ? (
+                        <div className="flex gap-2 pb-2">
+                          <button onClick={() => { openEdit(res); }}
+                            className="flex-1 py-3 text-[8px] hv font-black uppercase tracking-widest border border-[#1a1a1a] text-[#333] hover:text-white hover:border-[#333] transition-all">
+                            Modifica
+                          </button>
+                          <button onClick={() => handleFree(res)}
+                            className="flex-1 py-3 text-[8px] hv font-black uppercase tracking-widest border border-[#300] text-[#555] hover:border-red-900 hover:text-red-500 transition-all">
+                            Libera
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 px-1 pb-2">
+                          <Lock size={11} className="text-[#333] shrink-0" />
+                          <p className="text-[8px] font-sans uppercase tracking-widest text-[#333]">Prenotazione di un altro PR</p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       {showBookingModal && selectedTable && (
         <BookingModal
           table={selectedTable}
@@ -295,13 +369,13 @@ function BookingModal({ table, initialReservation, onClose, onSubmit }: {
   const inp = "w-full bg-bg border border-[#1a1a1a] px-4 py-3 text-xs font-sans text-white placeholder-[#2a2a2a] outline-none transition-colors";
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center p-0 sm:p-4">
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
         className="absolute inset-0 bg-black/90 backdrop-blur-sm" onClick={onClose} />
 
-      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+      <motion.div initial={{ opacity: 0, y: 32 }} animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-        className="relative w-full max-w-lg bg-card border border-[#1a1a1a] overflow-hidden max-h-[90vh] flex flex-col">
+        className="relative w-full sm:max-w-lg bg-card border-t border-x sm:border border-[#1a1a1a] overflow-hidden max-h-[92vh] sm:max-h-[90vh] flex flex-col rounded-t-2xl sm:rounded-none">
         <div className="h-[2px] bg-accent shrink-0" />
 
         <div className="px-8 py-5 border-b border-[#111] flex items-center justify-between shrink-0">
@@ -318,7 +392,7 @@ function BookingModal({ table, initialReservation, onClose, onSubmit }: {
 
         <form className="p-8 space-y-5 overflow-y-auto"
           onSubmit={(e) => { e.preventDefault(); onSubmit({ ...form, status: 'confirmed' as const }); }}>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <BField label="Cliente">
               <input required className={cn(inp, 'uppercase tracking-widest')} placeholder="NOME COMPLETO"
                 value={form.customerName} onChange={e => setForm({ ...form, customerName: e.target.value })} />

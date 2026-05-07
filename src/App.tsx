@@ -282,7 +282,7 @@ export default function App() {
             {view === 'venues' && user.role === 'admin' && (
               <button onClick={() => setShowNewClubModal(true)}
                 className="flex items-center gap-2 bg-accent text-black px-4 py-2 text-[9px] hv font-black uppercase tracking-widest hover:bg-white transition-colors">
-                <Plus size={12} /> Nuovo Club
+                <Plus size={12} /><span className="hidden sm:inline">Nuovo Club</span>
               </button>
             )}
             {view === 'reservations' && (
@@ -461,7 +461,7 @@ export default function App() {
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-2">
-                                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div className="flex items-center gap-0.5 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                                       <button
                                         onClick={() => setEditingFloorPlanMeta({ venueId: venue.id, fp })}
                                         className="w-7 h-7 flex items-center justify-center text-[#333] hover:text-accent transition-colors">
@@ -749,7 +749,7 @@ function VenueCard({ venue, eventCount, onClick, onEdit, onDelete }: {
             <Building2 size={15} className="text-[#333] group-hover:text-accent transition-colors" />
           </div>
           {(onEdit || onDelete) && (
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="flex items-center gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
               {onEdit && (
                 <button onClick={onEdit}
                   className="w-7 h-7 flex items-center justify-center text-[#333] hover:text-accent transition-colors">
@@ -823,7 +823,7 @@ function EventCard({ event, venueName, onClick, onEdit, onDelete }: {
             </span>
           </div>
           {(onEdit || onDelete) && (
-            <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="flex items-center gap-1 shrink-0 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
               {onEdit && (
                 <button onClick={onEdit}
                   className="w-7 h-7 flex items-center justify-center text-[#333] hover:text-accent transition-colors">
@@ -867,7 +867,40 @@ function ReservationsTable({ reservations, userRole }: { reservations: Reservati
         </div>
       </div>
 
-      <div className="overflow-x-auto">
+      {/* Mobile card list */}
+      <div className="sm:hidden divide-y divide-[#0d0d0d]">
+        {reservations.length === 0 ? (
+          <div className="px-5 py-16 text-center">
+            <p className="text-[9px] font-sans uppercase tracking-[0.4em] text-[#1e1e1e]">Nessuna Prenotazione</p>
+          </div>
+        ) : reservations.map(res => (
+          <div key={res.id} className="p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className={cn('w-1.5 h-1.5 rounded-full shrink-0',
+                  res.status === 'confirmed' ? 'bg-accent blink' : 'bg-[#222]'
+                )} />
+                <span className={cn('text-[9px] font-sans uppercase tracking-widest',
+                  res.status === 'confirmed' ? 'text-accent' : 'text-[#333]'
+                )}>{res.status}</span>
+              </div>
+              <span className="hv font-black text-accent text-lg">€{res.budget}</span>
+            </div>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="hv font-bold text-sm uppercase text-white truncate">{res.customerName}</p>
+                {userRole === 'admin' && <p className="text-[9px] font-sans text-[#333] uppercase tracking-widest mt-0.5">{res.prName}</p>}
+              </div>
+              <div className="text-right shrink-0">
+                <p className="hv font-bold text-sm text-white">{res.tableName ?? res.tableId}</p>
+                <p className="text-[9px] font-sans text-[#333] mt-0.5">{res.guestsCount} pax</p>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="hidden sm:block overflow-x-auto">
         <table className="w-full text-left border-collapse min-w-[600px]">
           <thead>
             <tr className="border-b border-[#111]">
@@ -939,7 +972,7 @@ function NewEventModal({ venue, floorPlans, onClose, onSubmit, initialData }: {
   });
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center p-0 sm:p-4">
       <motion.div
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         className="absolute inset-0 bg-black/90 backdrop-blur-sm"
@@ -948,10 +981,10 @@ function NewEventModal({ venue, floorPlans, onClose, onSubmit, initialData }: {
       <motion.div
         initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.22, ease: 'easeOut' }}
-        className="relative w-full max-w-md bg-card border border-[#1a1a1a] overflow-hidden"
+        className="relative w-full sm:max-w-md bg-card border-t border-x sm:border border-[#1a1a1a] overflow-hidden rounded-t-2xl sm:rounded-none max-h-[90vh] flex flex-col"
       >
-        <div className="h-[2px] bg-accent" />
-        <div className="px-8 py-6 border-b border-[#111] flex items-center justify-between">
+        <div className="h-[2px] bg-accent shrink-0" />
+        <div className="px-6 sm:px-8 py-5 sm:py-6 border-b border-[#111] flex items-center justify-between shrink-0">
           <div>
             <h3 className="hv font-black text-xl uppercase text-white">{isEdit ? 'Modifica Evento' : 'Nuovo Evento'}</h3>
             <p className="text-[9px] font-sans uppercase tracking-widest text-[#333] mt-1">{venue.name}</p>
@@ -959,7 +992,7 @@ function NewEventModal({ venue, floorPlans, onClose, onSubmit, initialData }: {
           <button onClick={onClose} className="text-[#333] hover:text-white transition-colors p-1"><X size={18} /></button>
         </div>
 
-        <form className="p-8 space-y-5" onSubmit={(e) => { e.preventDefault(); onSubmit(form); }}>
+        <form className="p-6 sm:p-8 space-y-5 overflow-y-auto" onSubmit={(e) => { e.preventDefault(); onSubmit(form); }}>
           <Field label="Nome Evento">
             <input required placeholder="ES. TECHNO FRIDAY"
               className="w-full bg-bg border border-[#1a1a1a] px-4 py-3 text-xs font-sans uppercase tracking-widest text-white placeholder-[#2a2a2a] outline-none transition-colors"
@@ -1025,7 +1058,7 @@ function NewClubModal({ onClose, onSubmit, initialData }: {
   const [form, setForm] = useState({ name: initialData?.name ?? '', address: initialData?.address ?? '' });
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center p-0 sm:p-4">
       <motion.div
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         className="absolute inset-0 bg-black/90 backdrop-blur-sm"
@@ -1034,10 +1067,10 @@ function NewClubModal({ onClose, onSubmit, initialData }: {
       <motion.div
         initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.22, ease: 'easeOut' }}
-        className="relative w-full max-w-md bg-card border border-[#1a1a1a] overflow-hidden"
+        className="relative w-full sm:max-w-md bg-card border-t border-x sm:border border-[#1a1a1a] overflow-hidden rounded-t-2xl sm:rounded-none max-h-[90vh] flex flex-col"
       >
-        <div className="h-[2px] bg-accent" />
-        <div className="px-8 py-6 border-b border-[#111] flex items-center justify-between">
+        <div className="h-[2px] bg-accent shrink-0" />
+        <div className="px-6 sm:px-8 py-5 sm:py-6 border-b border-[#111] flex items-center justify-between shrink-0">
           <div>
             <h3 className="hv font-black text-xl uppercase text-white">{isEdit ? 'Modifica Club' : 'Nuovo Club'}</h3>
             <p className="text-[9px] font-sans uppercase tracking-widest text-[#333] mt-1">{isEdit ? 'Aggiorna nome e indirizzo' : 'Crea il locale e poi la sua piantina'}</p>
@@ -1045,7 +1078,7 @@ function NewClubModal({ onClose, onSubmit, initialData }: {
           <button onClick={onClose} className="text-[#333] hover:text-white transition-colors p-1"><X size={18} /></button>
         </div>
 
-        <form className="p-8 space-y-5" onSubmit={(e) => { e.preventDefault(); onSubmit(form); }}>
+        <form className="p-6 sm:p-8 space-y-5 overflow-y-auto" onSubmit={(e) => { e.preventDefault(); onSubmit(form); }}>
           <Field label="Nome del Club">
             <input required placeholder="ES. AMNESIA CLUB"
               className="w-full bg-bg border border-[#1a1a1a] px-4 py-3 text-xs font-sans uppercase tracking-widest text-white placeholder-[#2a2a2a] outline-none transition-colors"
@@ -1082,21 +1115,21 @@ function NewFloorPlanModal({ venues, onClose, onSubmit }: {
   const [venueId, setVenueId] = useState(venues[0]?.id ?? '');
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center p-0 sm:p-4">
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
         className="absolute inset-0 bg-black/90 backdrop-blur-sm" onClick={onClose} />
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.22, ease: 'easeOut' }}
-        className="relative w-full max-w-md bg-card border border-[#1a1a1a] overflow-hidden">
-        <div className="h-[2px] bg-accent" />
-        <div className="px-8 py-6 border-b border-[#111] flex items-center justify-between">
+        className="relative w-full sm:max-w-md bg-card border-t border-x sm:border border-[#1a1a1a] overflow-hidden rounded-t-2xl sm:rounded-none max-h-[90vh] flex flex-col">
+        <div className="h-[2px] bg-accent shrink-0" />
+        <div className="px-6 sm:px-8 py-5 sm:py-6 border-b border-[#111] flex items-center justify-between shrink-0">
           <div>
             <h3 className="hv font-black text-xl uppercase text-white">Nuova Pianta</h3>
             <p className="text-[9px] font-sans uppercase tracking-widest text-[#333] mt-1">Seleziona il locale di destinazione</p>
           </div>
           <button onClick={onClose} className="text-[#333] hover:text-white transition-colors p-1"><X size={18} /></button>
         </div>
-        <form className="p-8 space-y-5" onSubmit={(e) => { e.preventDefault(); if (venueId) onSubmit(venueId); }}>
+        <form className="p-6 sm:p-8 space-y-5 overflow-y-auto" onSubmit={(e) => { e.preventDefault(); if (venueId) onSubmit(venueId); }}>
           <Field label="Locale">
             <select required
               className="w-full bg-bg border border-[#1a1a1a] px-4 py-3 text-xs font-sans uppercase tracking-widest text-white outline-none transition-colors [color-scheme:dark]"
@@ -1129,21 +1162,21 @@ function FloorPlanMetaModal({ fp, onClose, onSubmit }: {
   const [name, setName] = useState(fp.name);
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center p-0 sm:p-4">
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
         className="absolute inset-0 bg-black/90 backdrop-blur-sm" onClick={onClose} />
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.22, ease: 'easeOut' }}
-        className="relative w-full max-w-md bg-card border border-[#1a1a1a] overflow-hidden">
-        <div className="h-[2px] bg-accent" />
-        <div className="px-8 py-6 border-b border-[#111] flex items-center justify-between">
+        className="relative w-full sm:max-w-md bg-card border-t border-x sm:border border-[#1a1a1a] overflow-hidden rounded-t-2xl sm:rounded-none max-h-[90vh] flex flex-col">
+        <div className="h-[2px] bg-accent shrink-0" />
+        <div className="px-6 sm:px-8 py-5 sm:py-6 border-b border-[#111] flex items-center justify-between shrink-0">
           <div>
             <h3 className="hv font-black text-xl uppercase text-white">Modifica Pianta</h3>
             <p className="text-[9px] font-sans uppercase tracking-widest text-[#333] mt-1">Aggiorna il nome della pianta</p>
           </div>
           <button onClick={onClose} className="text-[#333] hover:text-white transition-colors p-1"><X size={18} /></button>
         </div>
-        <form className="p-8 space-y-5" onSubmit={(e) => { e.preventDefault(); onSubmit(name); }}>
+        <form className="p-6 sm:p-8 space-y-5 overflow-y-auto" onSubmit={(e) => { e.preventDefault(); onSubmit(name); }}>
           <Field label="Nome Pianta">
             <input required
               className="w-full bg-bg border border-[#1a1a1a] px-4 py-3 text-xs font-sans uppercase tracking-widest text-white placeholder-[#2a2a2a] outline-none transition-colors"
