@@ -369,7 +369,7 @@ function BookingModal({ table, initialReservation, onClose, onSubmit }: {
   const inp = "w-full bg-bg border border-[#1a1a1a] px-4 py-3 text-xs font-sans text-white placeholder-[#2a2a2a] outline-none transition-colors";
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end sm:items-center p-0 sm:p-4">
+    <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center p-0 sm:p-4">
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
         className="absolute inset-0 bg-black/90 backdrop-blur-sm" onClick={onClose} />
 

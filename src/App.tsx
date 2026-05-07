@@ -972,7 +972,7 @@ function NewEventModal({ venue, floorPlans, onClose, onSubmit, initialData }: {
   });
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end sm:items-center p-0 sm:p-4">
+    <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center p-0 sm:p-4">
       <motion.div
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         className="absolute inset-0 bg-black/90 backdrop-blur-sm"
@@ -1058,7 +1058,7 @@ function NewClubModal({ onClose, onSubmit, initialData }: {
   const [form, setForm] = useState({ name: initialData?.name ?? '', address: initialData?.address ?? '' });
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end sm:items-center p-0 sm:p-4">
+    <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center p-0 sm:p-4">
       <motion.div
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         className="absolute inset-0 bg-black/90 backdrop-blur-sm"
@@ -1115,7 +1115,7 @@ function NewFloorPlanModal({ venues, onClose, onSubmit }: {
   const [venueId, setVenueId] = useState(venues[0]?.id ?? '');
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end sm:items-center p-0 sm:p-4">
+    <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center p-0 sm:p-4">
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
         className="absolute inset-0 bg-black/90 backdrop-blur-sm" onClick={onClose} />
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
@@ -1162,7 +1162,7 @@ function FloorPlanMetaModal({ fp, onClose, onSubmit }: {
   const [name, setName] = useState(fp.name);
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end sm:items-center p-0 sm:p-4">
+    <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center p-0 sm:p-4">
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
         className="absolute inset-0 bg-black/90 backdrop-blur-sm" onClick={onClose} />
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
