@@ -48,7 +48,7 @@ export interface Event {
   status: 'draft' | 'active' | 'completed';
 }
 
-export type ReservationStatus = 'optioned' | 'confirmed' | 'blocked' | 'free';
+export type ReservationStatus = 'confirmed' | 'blocked' | 'free';
 
 export interface Reservation {
   id: string;
@@ -57,7 +57,7 @@ export interface Reservation {
   prId: string;
   prName: string;
   customerName: string;
-  customerPhone: string;
+  customerPhone?: string;
   guestsCount: number;
   bottles: string;
   budget: number;

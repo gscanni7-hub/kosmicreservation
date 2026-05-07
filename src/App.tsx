@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   Calendar, Settings, BarChart3, LogOut, ChevronRight,
-  Plus, Download, Filter, Building2, X, ArrowLeft, Menu
+  Plus, Download, Filter, Building2, X, ArrowLeft, Menu, Map
 } from 'lucide-react';
 import { MOCK_ADMIN, MOCK_PR, INITIAL_VENUES, INITIAL_EVENTS, INITIAL_RESERVATIONS } from './constants';
 import { UserProfile, Event, Reservation, Venue, FloorPlan } from './types';
@@ -22,13 +22,14 @@ const PAGE = {
 export default function App() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [view, setView] = useState<AppView>('venues');
-  const [venues]     = useState(INITIAL_VENUES);
+  const [venues, setVenues] = useState(INITIAL_VENUES);
   const [events, setEvents] = useState(INITIAL_EVENTS);
   const [reservations, setReservations] = useState<Reservation[]>(INITIAL_RESERVATIONS);
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [showNewEventModal, setShowNewEventModal] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [editingFloorPlan, setEditingFloorPlan] = useState<{ venueId: string; fp: FloorPlan } | null>(null);
 
   const handleLogin = (role: 'admin' | 'pr') => {
     setUser(role === 'admin' ? MOCK_ADMIN : MOCK_PR);
@@ -64,7 +65,7 @@ export default function App() {
     return sum + (fp?.tables.length ?? 0);
   }, 0);
   const bookedReservations = reservations.filter(
-    r => (r.status === 'confirmed' || r.status === 'optioned' || r.status === 'blocked') && activeEventIds.has(r.eventId)
+    r => (r.status === 'confirmed' || r.status === 'blocked') && activeEventIds.has(r.eventId)
   );
   const occupancyPct = totalTables > 0 ? Math.round((bookedReservations.length / totalTables) * 100) : 0;
   const revenueEst   = bookedReservations.reduce((sum, r) => sum + r.budget, 0);
@@ -185,7 +186,7 @@ export default function App() {
               <SidebarContent
                 user={user}
                 view={view}
-                onNav={(v) => { setView(v as AppView); setSelectedVenue(null); setSelectedEvent(null); setMobileSidebarOpen(false); }}
+                onNav={(v) => { setView(v as AppView); setSelectedVenue(null); setSelectedEvent(null); setEditingFloorPlan(null); setMobileSidebarOpen(false); }}
                 onLogout={handleLogout}
                 occupancyPct={occupancyPct}
                 revenueEst={revenueEst}
@@ -198,7 +199,7 @@ export default function App() {
       {/* ── Desktop sidebar ── */}
       <aside className="hidden md:flex w-60 xl:w-64 border-r border-[#111] bg-black flex-col shrink-0 sticky top-0 h-screen">
         <SidebarContent user={user} view={view}
-          onNav={(v) => { setView(v as AppView); setSelectedVenue(null); setSelectedEvent(null); }}
+          onNav={(v) => { setView(v as AppView); setSelectedVenue(null); setSelectedEvent(null); setEditingFloorPlan(null); }}
           onLogout={handleLogout}
           occupancyPct={occupancyPct}
           revenueEst={revenueEst}
@@ -324,8 +325,81 @@ export default function App() {
 
             {/* Editor */}
             {view === 'editor' && (
-              <motion.div key="editor" {...PAGE}>
-                <FloorPlanEditor floorPlan={venues[0]?.floorPlans[0] ?? INITIAL_VENUES[0].floorPlans[0]} />
+              <motion.div key="editor" {...PAGE} className="h-full flex flex-col">
+                {editingFloorPlan ? (
+                  <div className="flex flex-col h-full gap-5">
+                    <button
+                      onClick={() => setEditingFloorPlan(null)}
+                      className="flex items-center gap-2 text-[#444] hover:text-accent transition-colors text-[10px] font-sans uppercase tracking-widest self-start">
+                      <ArrowLeft size={11} /> Torna alle Piante
+                    </button>
+                    <FloorPlanEditor
+                      key={editingFloorPlan.fp.id || 'new'}
+                      floorPlan={editingFloorPlan.fp}
+                      onSave={(savedFp) => {
+                        setVenues(prev => prev.map(v =>
+                          v.id === editingFloorPlan.venueId
+                            ? {
+                                ...v,
+                                floorPlans: v.floorPlans.some(fp => fp.id === savedFp.id)
+                                  ? v.floorPlans.map(fp => fp.id === savedFp.id ? savedFp : fp)
+                                  : [...v.floorPlans, savedFp],
+                              }
+                            : v
+                        ));
+                        setEditingFloorPlan(null);
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <PageTitle title="Venue Design" sub="Gestisci le piante dei tuoi locali" />
+                    <div className="space-y-8 mt-2">
+                      {venues.map(venue => (
+                        <div key={venue.id} className="border border-[#1a1a1a] bg-card">
+                          <div className="px-7 py-5 border-b border-[#111] flex items-center justify-between">
+                            <div>
+                              <h3 className="hv font-black text-xl uppercase text-white">{venue.name}</h3>
+                              <p className="text-[9px] font-sans uppercase tracking-widest text-[#333] mt-0.5">{venue.address}</p>
+                            </div>
+                            <button
+                              onClick={() => setEditingFloorPlan({
+                                venueId: venue.id,
+                                fp: { id: '', name: '', canvasWidth: 800, canvasHeight: 600, staticAreas: [], tables: [] },
+                              })}
+                              className="flex items-center gap-2 bg-accent text-black px-4 py-2.5 text-[9px] hv font-black uppercase tracking-widest hover:bg-white transition-colors">
+                              <Plus size={12} /> Nuova Pianta
+                            </button>
+                          </div>
+                          {venue.floorPlans.length === 0 ? (
+                            <div className="px-7 py-10 text-center">
+                              <p className="text-[9px] font-sans uppercase tracking-[0.4em] text-[#1e1e1e]">Nessuna pianta — creane una</p>
+                            </div>
+                          ) : (
+                            <div className="divide-y divide-[#0d0d0d]">
+                              {venue.floorPlans.map(fp => (
+                                <div key={fp.id} className="px-7 py-4 flex items-center justify-between group hover:bg-white/[0.01] transition-colors">
+                                  <div className="flex items-center gap-4">
+                                    <Map size={14} className="text-[#2a2a2a] shrink-0" />
+                                    <div>
+                                      <p className="hv font-black text-sm uppercase text-white">{fp.name}</p>
+                                      <p className="text-[8px] font-sans text-[#333] mt-0.5">{fp.tables.length} tavoli</p>
+                                    </div>
+                                  </div>
+                                  <button
+                                    onClick={() => setEditingFloorPlan({ venueId: venue.id, fp })}
+                                    className="text-[9px] font-sans uppercase tracking-widest text-[#333] hover:text-accent transition-colors flex items-center gap-1.5">
+                                    Modifica <ChevronRight size={11} />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </motion.div>
             )}
 
@@ -347,12 +421,12 @@ export default function App() {
       {showNewEventModal && selectedVenue && (
         <NewEventModal
           venue={selectedVenue}
+          floorPlans={selectedVenue.floorPlans}
           onClose={() => setShowNewEventModal(false)}
           onSubmit={(data) => {
             setEvents(prev => [...prev, {
               id: `e_${Date.now()}`,
               venueId: selectedVenue.id,
-              floorPlanId: selectedVenue.floorPlans[0]?.id ?? '',
               status: 'active',
               ...data,
             }]);
@@ -647,12 +721,13 @@ function ReservationsTable({ reservations, userRole }: { reservations: Reservati
 }
 
 /* ── NewEventModal ───────────────────────────────────────── */
-function NewEventModal({ venue, onClose, onSubmit }: {
+function NewEventModal({ venue, floorPlans, onClose, onSubmit }: {
   venue: Venue;
+  floorPlans: FloorPlan[];
   onClose: () => void;
-  onSubmit: (d: { name: string; date: string; description: string }) => void;
+  onSubmit: (d: { name: string; date: string; description: string; floorPlanId: string }) => void;
 }) {
-  const [form, setForm] = useState({ name: '', date: '', description: '' });
+  const [form, setForm] = useState({ name: '', date: '', description: '', floorPlanId: floorPlans[0]?.id ?? '' });
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -691,6 +766,19 @@ function NewEventModal({ venue, onClose, onSubmit }: {
               className="w-full bg-bg border border-[#1a1a1a] px-4 py-3 text-xs font-sans uppercase tracking-widest text-white placeholder-[#2a2a2a] outline-none transition-colors resize-none"
               value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
           </Field>
+
+          {floorPlans.length > 0 && (
+            <Field label="Pianta">
+              <select
+                className="w-full bg-bg border border-[#1a1a1a] px-4 py-3 text-xs font-sans uppercase tracking-widest text-white outline-none transition-colors [color-scheme:dark]"
+                value={form.floorPlanId}
+                onChange={e => setForm({ ...form, floorPlanId: e.target.value })}>
+                {floorPlans.map(fp => (
+                  <option key={fp.id} value={fp.id}>{fp.name}</option>
+                ))}
+              </select>
+            </Field>
+          )}
 
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose}

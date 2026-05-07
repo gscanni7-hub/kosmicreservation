@@ -7,10 +7,12 @@ import { cn } from '../../lib/utils';
 
 interface FloorPlanEditorProps {
   floorPlan: FloorPlan;
+  onSave?: (fp: FloorPlan) => void;
 }
 
-export default function FloorPlanEditor({ floorPlan }: FloorPlanEditorProps) {
+export default function FloorPlanEditor({ floorPlan, onSave }: FloorPlanEditorProps) {
   const [tables, setTables] = useState<Table[]>(floorPlan.tables);
+  const [fpName, setFpName] = useState(floorPlan.name);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
@@ -80,23 +82,37 @@ export default function FloorPlanEditor({ floorPlan }: FloorPlanEditorProps) {
     <div className="flex flex-col h-full gap-8 lg:flex-row" ref={containerRef}>
       {/* Editor Main View */}
       <div className="flex-1 flex flex-col gap-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <button 
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <input
+              className="flex-1 min-w-0 bg-transparent border border-[#1a1a1a] px-4 py-3 text-xs hv font-black uppercase tracking-widest text-white placeholder-[#333] outline-none focus:border-accent/40 transition-colors"
+              placeholder="NOME PIANTA"
+              value={fpName}
+              onChange={e => setFpName(e.target.value)}
+            />
+            <button
               onClick={() => addTable('rect')}
-              className="flex items-center gap-2 px-4 py-3 bg-zinc-800 border border-border rounded text-[9px] uppercase tracking-[0.2em] font-black hover:bg-zinc-700 transition-all"
+              className="flex items-center gap-2 px-4 py-3 bg-zinc-800 border border-border rounded text-[9px] uppercase tracking-[0.2em] font-black hover:bg-zinc-700 transition-all shrink-0"
             >
-              <Square size={14} /> Add Rect
+              <Square size={14} /> Rect
             </button>
-            <button 
+            <button
               onClick={() => addTable('circle')}
-              className="flex items-center gap-2 px-4 py-3 bg-zinc-800 border border-border rounded text-[9px] uppercase tracking-[0.2em] font-black hover:bg-zinc-700 transition-all"
+              className="flex items-center gap-2 px-4 py-3 bg-zinc-800 border border-border rounded text-[9px] uppercase tracking-[0.2em] font-black hover:bg-zinc-700 transition-all shrink-0"
             >
-              <CircleIcon size={14} /> Add Round
+              <CircleIcon size={14} /> Round
             </button>
           </div>
-          <button className="flex items-center gap-2 px-8 py-3 bg-accent text-black rounded font-black text-[10px] uppercase tracking-[0.2em] hover:opacity-90 transition-all shadow-[0_0_30px_rgba(212,175,55,0.2)]">
-            <Save size={16} /> Save Floorplan
+          <button
+            onClick={() => onSave?.({
+              ...floorPlan,
+              id: floorPlan.id || Math.random().toString(36).substr(2, 9),
+              name: fpName || 'Nuova Pianta',
+              tables,
+            })}
+            className="flex items-center gap-2 px-8 py-3 bg-accent text-black rounded font-black text-[10px] uppercase tracking-[0.2em] hover:opacity-90 transition-all shadow-[0_0_30px_rgba(212,175,55,0.2)] shrink-0"
+          >
+            <Save size={16} /> Salva
           </button>
         </div>
 

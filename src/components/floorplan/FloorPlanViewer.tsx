@@ -15,7 +15,6 @@ interface FloorPlanViewerProps {
 
 const STATUS_COLORS = {
   confirmed: '#ef4444',
-  optioned:  '#F0E800',
   blocked:   '#2a2a2a',
   free:      '#22c55e',
 } as const;
@@ -218,7 +217,6 @@ export default function FloorPlanViewer({ event, floorPlan, reservations, curren
               eventId: event.id,
               tableId: selectedTable.id,
               prId: currentUser.id,
-              prName: currentUser.displayName,
               ...data,
               createdAt: new Date().toISOString(),
             });
@@ -250,10 +248,11 @@ function BookingModal({ table, onClose, onSubmit }: {
   onSubmit: (data: any) => void;
 }) {
   const [form, setForm] = useState({
-    customerName: '', customerPhone: '',
+    customerName: '',
+    prName: '',
     guestsCount: table.capacity,
     bottles: '', budget: table.minSpend,
-    notes: '', status: 'optioned' as any,
+    notes: '',
   });
 
   const inp = "w-full bg-bg border border-[#1a1a1a] px-4 py-3 text-xs font-sans text-white placeholder-[#2a2a2a] outline-none transition-colors";
@@ -280,15 +279,15 @@ function BookingModal({ table, onClose, onSubmit }: {
         </div>
 
         <form className="p-8 space-y-5 overflow-y-auto"
-          onSubmit={(e) => { e.preventDefault(); onSubmit(form); }}>
+          onSubmit={(e) => { e.preventDefault(); onSubmit({ ...form, status: 'confirmed' as const }); }}>
           <div className="grid grid-cols-2 gap-4">
             <BField label="Cliente">
               <input required className={cn(inp, 'uppercase tracking-widest')} placeholder="NOME COMPLETO"
                 value={form.customerName} onChange={e => setForm({ ...form, customerName: e.target.value })} />
             </BField>
-            <BField label="Contatto">
-              <input required className={cn(inp, 'font-mono')} placeholder="+39 ---"
-                value={form.customerPhone} onChange={e => setForm({ ...form, customerPhone: e.target.value })} />
+            <BField label="PR">
+              <input required className={cn(inp, 'uppercase tracking-widest')} placeholder="NOME PR"
+                value={form.prName} onChange={e => setForm({ ...form, prName: e.target.value })} />
             </BField>
             <BField label="PAX">
               <input type="number" className={inp}
@@ -310,27 +309,9 @@ function BookingModal({ table, onClose, onSubmit }: {
               value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
           </BField>
 
-          {/* Status toggle */}
-          <div className="flex gap-3">
-            {(['optioned', 'confirmed'] as const).map(s => (
-              <button key={s} type="button"
-                onClick={() => setForm({ ...form, status: s })}
-                className={cn(
-                  'flex-1 py-3 text-[9px] hv font-black uppercase tracking-widest border transition-all',
-                  form.status === s
-                    ? s === 'confirmed'
-                      ? 'bg-accent text-black border-accent'
-                      : 'bg-[#F0E80015] text-accent border-accent/40'
-                    : 'bg-transparent text-[#333] border-[#1a1a1a] hover:border-[#333]'
-                )}>
-                {s === 'optioned' ? 'Opziona' : 'Conferma'}
-              </button>
-            ))}
-          </div>
-
           <button type="submit"
             className="w-full py-4 bg-accent text-black text-[10px] hv font-black uppercase tracking-[0.3em] hover:bg-white transition-colors">
-            Invia al Sistema
+            Conferma Prenotazione
           </button>
         </form>
       </motion.div>
