@@ -279,11 +279,6 @@ export default function App() {
             </span>
           </div>
           <div className="flex items-center gap-3 shrink-0">
-            {view === 'reservations' && (
-              <button className="flex items-center gap-2 border border-[#222] text-[#555] px-4 py-2 text-[9px] hv font-black uppercase tracking-widest hover:border-accent hover:text-accent transition-all">
-                <Download size={12} /> Export
-              </button>
-            )}
           </div>
         </header>
 
