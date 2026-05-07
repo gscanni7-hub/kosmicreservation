@@ -64,7 +64,7 @@ export default function App() {
     return sum + (fp?.tables.length ?? 0);
   }, 0);
   const bookedReservations = reservations.filter(
-    r => (r.status === 'confirmed' || r.status === 'optioned') && activeEventIds.has(r.eventId)
+    r => (r.status === 'confirmed' || r.status === 'optioned' || r.status === 'blocked') && activeEventIds.has(r.eventId)
   );
   const occupancyPct = totalTables > 0 ? Math.round((bookedReservations.length / totalTables) * 100) : 0;
   const revenueEst   = bookedReservations.reduce((sum, r) => sum + r.budget, 0);
