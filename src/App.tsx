@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   Calendar, Settings, BarChart3, LogOut, ChevronRight,
-  Plus, Download, Filter, Building2, X, ArrowLeft, Menu, Map
+  Plus, Download, Filter, Building2, X, ArrowLeft, Menu, Map, Pencil, Trash2
 } from 'lucide-react';
 import { MOCK_ADMIN, MOCK_PR, INITIAL_VENUES, INITIAL_EVENTS, INITIAL_RESERVATIONS } from './constants';
 import { UserProfile, Event, Reservation, Venue, FloorPlan } from './types';
@@ -30,6 +30,7 @@ export default function App() {
   const [showNewEventModal, setShowNewEventModal] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [editingFloorPlan, setEditingFloorPlan] = useState<{ venueId: string; fp: FloorPlan } | null>(null);
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
 
   const handleLogin = (role: 'admin' | 'pr') => {
     setUser(role === 'admin' ? MOCK_ADMIN : MOCK_PR);
@@ -278,7 +279,12 @@ export default function App() {
                       <motion.div key={event.id}
                         initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: i * 0.06 }}>
-                        <EventCard event={event} onClick={() => openEvent(event)} />
+                        <EventCard
+                          event={event}
+                          onClick={() => openEvent(event)}
+                          onEdit={(e) => { e.stopPropagation(); setEditingEvent(event); }}
+                          onDelete={(e) => { e.stopPropagation(); setEvents(prev => prev.filter(ev => ev.id !== event.id)); }}
+                        />
                       </motion.div>
                     ))}
                   </div>
@@ -431,6 +437,19 @@ export default function App() {
               ...data,
             }]);
             setShowNewEventModal(false);
+          }}
+        />
+      )}
+
+      {editingEvent && selectedVenue && (
+        <NewEventModal
+          venue={selectedVenue}
+          floorPlans={selectedVenue.floorPlans}
+          initialData={editingEvent}
+          onClose={() => setEditingEvent(null)}
+          onSubmit={(data) => {
+            setEvents(prev => prev.map(ev => ev.id === editingEvent.id ? { ...ev, ...data } : ev));
+            setEditingEvent(null);
           }}
         />
       )}
@@ -611,7 +630,11 @@ function VenueCard({ venue, eventCount, onClick }: { venue: Venue; eventCount: n
 }
 
 /* ── EventCard ───────────────────────────────────────────── */
-function EventCard({ event, venueName, onClick }: { event: Event; venueName?: string; onClick: () => void }) {
+function EventCard({ event, venueName, onClick, onEdit, onDelete }: {
+  event: Event; venueName?: string; onClick: () => void;
+  onEdit?: (e: React.MouseEvent) => void;
+  onDelete?: (e: React.MouseEvent) => void;
+}) {
   return (
     <motion.div
       onClick={onClick}
@@ -622,20 +645,38 @@ function EventCard({ event, venueName, onClick }: { event: Event; venueName?: st
 
       <div className="p-7 flex flex-col gap-5 flex-1">
         <div className="flex items-center justify-between gap-3">
-          {venueName && (
-            <span className="text-[8px] font-sans uppercase tracking-widest text-[#2a2a2a] flex items-center gap-1.5">
-              <Building2 size={9} /> {venueName}
+          <div className="flex items-center gap-3 min-w-0">
+            {venueName && (
+              <span className="text-[8px] font-sans uppercase tracking-widest text-[#2a2a2a] flex items-center gap-1.5 shrink-0">
+                <Building2 size={9} /> {venueName}
+              </span>
+            )}
+            <span className={cn(
+              'text-[8px] font-sans font-bold uppercase tracking-widest px-2 py-1 shrink-0',
+              event.status === 'active'
+                ? 'text-accent bg-accent/8'
+                : 'text-[#333] bg-[#111]'
+            )}>
+              {event.status === 'active' && <span className="inline-block w-1.5 h-1.5 rounded-full bg-accent blink mr-1.5 align-middle" />}
+              {event.status}
             </span>
+          </div>
+          {(onEdit || onDelete) && (
+            <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+              {onEdit && (
+                <button onClick={onEdit}
+                  className="w-7 h-7 flex items-center justify-center text-[#333] hover:text-accent transition-colors">
+                  <Pencil size={12} />
+                </button>
+              )}
+              {onDelete && (
+                <button onClick={onDelete}
+                  className="w-7 h-7 flex items-center justify-center text-[#333] hover:text-red-500 transition-colors">
+                  <Trash2 size={12} />
+                </button>
+              )}
+            </div>
           )}
-          <span className={cn(
-            'text-[8px] font-sans font-bold uppercase tracking-widest px-2 py-1 shrink-0',
-            event.status === 'active'
-              ? 'text-accent bg-accent/8'
-              : 'text-[#333] bg-[#111]'
-          )}>
-            {event.status === 'active' && <span className="inline-block w-1.5 h-1.5 rounded-full bg-accent blink mr-1.5 align-middle" />}
-            {event.status}
-          </span>
         </div>
 
         <div className="flex-1">
@@ -721,13 +762,20 @@ function ReservationsTable({ reservations, userRole }: { reservations: Reservati
 }
 
 /* ── NewEventModal ───────────────────────────────────────── */
-function NewEventModal({ venue, floorPlans, onClose, onSubmit }: {
+function NewEventModal({ venue, floorPlans, onClose, onSubmit, initialData }: {
   venue: Venue;
   floorPlans: FloorPlan[];
   onClose: () => void;
   onSubmit: (d: { name: string; date: string; description: string; floorPlanId: string }) => void;
+  initialData?: Event;
 }) {
-  const [form, setForm] = useState({ name: '', date: '', description: '', floorPlanId: floorPlans[0]?.id ?? '' });
+  const isEdit = !!initialData;
+  const [form, setForm] = useState({
+    name: initialData?.name ?? '',
+    date: initialData?.date ?? '',
+    description: initialData?.description ?? '',
+    floorPlanId: initialData?.floorPlanId ?? floorPlans[0]?.id ?? '',
+  });
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -744,7 +792,7 @@ function NewEventModal({ venue, floorPlans, onClose, onSubmit }: {
         <div className="h-[2px] bg-accent" />
         <div className="px-8 py-6 border-b border-[#111] flex items-center justify-between">
           <div>
-            <h3 className="hv font-black text-xl uppercase text-white">Nuovo Evento</h3>
+            <h3 className="hv font-black text-xl uppercase text-white">{isEdit ? 'Modifica Evento' : 'Nuovo Evento'}</h3>
             <p className="text-[9px] font-sans uppercase tracking-widest text-[#333] mt-1">{venue.name}</p>
           </div>
           <button onClick={onClose} className="text-[#333] hover:text-white transition-colors p-1"><X size={18} /></button>
@@ -787,7 +835,7 @@ function NewEventModal({ venue, floorPlans, onClose, onSubmit }: {
             </button>
             <button type="submit"
               className="flex-1 py-3.5 text-[9px] hv font-black uppercase tracking-widest bg-accent text-black hover:bg-white transition-colors">
-              Crea Evento
+              {isEdit ? 'Salva Modifiche' : 'Crea Evento'}
             </button>
           </div>
         </form>
