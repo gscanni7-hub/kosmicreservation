@@ -921,11 +921,13 @@ function ReservationsTable({ reservations, userRole, events }: {
                 <span className="text-[9px] font-sans uppercase tracking-widest text-[#555]">
                   {rows.length} {rows.length === 1 ? 'prenotazione' : 'prenotazioni'}
                 </span>
-                <button
-                  onClick={() => exportEventCSV(rows, event?.name ?? eventId)}
-                  className="ml-auto flex items-center gap-1.5 text-[#555] hover:text-accent transition-colors text-[9px] font-sans uppercase tracking-widest">
-                  <Download size={11} /> Scarica
-                </button>
+                {userRole === 'admin' && (
+                  <button
+                    onClick={() => exportEventCSV(rows, event?.name ?? eventId)}
+                    className="ml-auto flex items-center gap-1.5 text-[#555] hover:text-accent transition-colors text-[9px] font-sans uppercase tracking-widest">
+                    <Download size={11} /> Scarica
+                  </button>
+                )}
               </div>
 
               {/* Mobile cards */}
