@@ -61,20 +61,30 @@ const KNOWN_PROVIDERS: Record<string, { tlds: string[]; canonical: string }> = {
 
 function validateEmail(email: string): string {
   const trimmed = email.trim().toLowerCase();
-  if (!/^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/.test(trimmed))
-    return 'Formato email non valido.';
+  if (!/^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,6}$/.test(trimmed))
+    return 'Formato email non valido (TLD non valido).';
   const [local, domain] = trimmed.split('@');
   if (DISPOSABLE_DOMAINS.has(domain))
-    return 'Email temporanee o usa-e-getta non ammesse.';
-  if (/^(test|fake|temp|trash|spam|example|noreply|no-reply)\./i.test(domain))
-    return 'Dominio email non valido.';
-  if (/^(test|fake|temp|trash|spam|aaa|bbb|xxx|yyy|zzz|asdf|qwerty|user123|admin|root)$/.test(local))
-    return 'Inserisci un indirizzo email reale.';
+    return 'Email temporanee non ammesse.';
+  
+  const parts = domain.split('.');
+  const tld = parts[parts.length - 1];
+  
+  // Blocca TLD comuni sbagliati
+  const commonTypos: Record<string, string> = {
+    'con': 'com',
+    'itit': 'it',
+    'om': 'com',
+    'nt': 'net',
+    'ed': 'edu'
+  };
+  
+  if (commonTypos[tld]) {
+    return `TLD ".${tld}" non valido. Intendevi ".${commonTypos[tld]}"?`;
+  }
 
   // Controlla se il provider è noto ma il TLD è sbagliato
-  const dotIdx = domain.indexOf('.');
-  const providerName = domain.slice(0, dotIdx);
-  const tld = domain.slice(dotIdx + 1);
+  const providerName = parts[0];
   const known = KNOWN_PROVIDERS[providerName];
   if (known && !known.tlds.includes(tld))
     return `"${domain}" non esiste. Intendevi ${known.canonical}?`;
@@ -420,10 +430,10 @@ export default function App() {
                       <span>Accedi</span>
                       <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
                     </motion.button>
-                    <div className="text-center pt-2">
+                    <div className="text-center pt-3">
                       <button type="button"
                         onClick={() => { setAuthScreen('forgot'); setForgotError(''); setForgotSent(false); setForgotDevLink(''); }}
-                        className="text-[10px] font-sans text-[#999] hover:text-accent transition-colors underline tracking-widest uppercase">
+                        className="text-[10px] font-sans text-white/50 hover:text-accent transition-colors underline tracking-widest uppercase font-medium">
                         Password dimenticata?
                       </button>
                     </div>
