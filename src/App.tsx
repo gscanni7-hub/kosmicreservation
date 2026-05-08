@@ -214,11 +214,24 @@ export default function App() {
                   <form onSubmit={handleLogin} className="space-y-3">
                     <div className="space-y-1">
                       <label className="text-[9px] hv font-black uppercase tracking-[0.2em] text-[#444]">Email</label>
-                      <LoginEmailField
+                      <input
+                        type="email"
+                        list="nightplan-accounts"
+                        autoComplete="off"
+                        required
                         value={loginEmail}
-                        onChange={v => { setLoginEmail(v); setLoginError(''); }}
-                        onSelect={(email, pw) => { setLoginEmail(email); setLoginPassword(pw); setLoginError(''); }}
+                        onChange={e => {
+                          setLoginEmail(e.target.value);
+                          setLoginError('');
+                          const match = SAVED_ACCOUNTS.find(a => a.email === e.target.value);
+                          if (match) setLoginPassword(match.password);
+                        }}
+                        placeholder="tua@email.it"
+                        className="w-full bg-[#0a0a0a] border border-[#2a2a2a] px-5 py-4 text-sm text-white placeholder-[#444] outline-none focus:border-accent/40 transition-colors font-sans"
                       />
+                      <datalist id="nightplan-accounts">
+                        {SAVED_ACCOUNTS.map(a => <option key={a.email} value={a.email}>{a.label}</option>)}
+                      </datalist>
                     </div>
                     <div className="space-y-1">
                       <label className="text-[9px] hv font-black uppercase tracking-[0.2em] text-[#444]">Password</label>
@@ -816,67 +829,10 @@ export default function App() {
   );
 }
 
-/* ── LoginEmailField ─────────────────────────────────────── */
 const SAVED_ACCOUNTS = [
-  { label: 'Admin',    email: 'g.scanni7@gmail.com', password: '1234' },
-  { label: 'PR',       email: 'lucavisca@gmail.com', password: '1234' },
+  { label: 'Admin', email: 'g.scanni7@gmail.com', password: '1234' },
+  { label: 'PR',    email: 'lucavisca@gmail.com', password: '1234' },
 ];
-
-function LoginEmailField({ value, onChange, onSelect }: {
-  value: string;
-  onChange: (v: string) => void;
-  onSelect: (email: string, password: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
-
-  const filtered = SAVED_ACCOUNTS.filter(a =>
-    value === '' || a.email.toLowerCase().includes(value.toLowerCase())
-  );
-
-  return (
-    <div ref={ref} className="relative">
-      <input
-        type="email"
-        autoComplete="off"
-        required
-        value={value}
-        onFocus={() => setOpen(true)}
-        onChange={e => { onChange(e.target.value); setOpen(true); }}
-        placeholder="tua@email.it"
-        className="w-full bg-[#0a0a0a] border border-[#2a2a2a] px-5 py-4 text-sm text-white placeholder-[#444] outline-none focus:border-accent/40 transition-colors font-sans"
-      />
-      {open && filtered.length > 0 && (
-        <div className="absolute left-0 right-0 top-full mt-0.5 bg-[#0d0d0d] border border-[#2a2a2a] z-50 overflow-hidden">
-          {filtered.map(acc => (
-            <button
-              key={acc.email}
-              type="button"
-              onMouseDown={e => { e.preventDefault(); onSelect(acc.email, acc.password); setOpen(false); }}
-              className="w-full flex items-center gap-4 px-5 py-3 hover:bg-white/[0.03] transition-colors text-left group"
-            >
-              <div className="w-7 h-7 bg-[#111] border border-[#222] flex items-center justify-center shrink-0 group-hover:border-accent/20 transition-colors">
-                <span className="hv font-black text-[#555] text-[9px] group-hover:text-accent transition-colors">{acc.label[0]}</span>
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10px] font-sans text-white truncate">{acc.email}</p>
-                <p className="text-[8px] font-sans text-[#444] uppercase tracking-widest mt-0.5">{acc.label} · ••••</p>
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 /* ── SidebarContent ──────────────────────────────────────── */
 function SidebarContent({ user, view, onNav, onLogout, occupancyPct = 0, revenueEst = 0, pendingCount = 0 }: {
