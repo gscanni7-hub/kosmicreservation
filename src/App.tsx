@@ -11,7 +11,7 @@ import { cn } from './lib/utils';
 import FloorPlanViewer from './components/floorplan/FloorPlanViewer';
 import FloorPlanEditor from './components/floorplan/FloorPlanEditor';
 
-type AppView = 'venues' | 'venue-events' | 'events' | 'active-events' | 'plan' | 'editor' | 'reservations' | 'approvals';
+type AppView = 'venues' | 'venue-events' | 'events' | 'active-events' | 'plan' | 'editor' | 'reservations' | 'approvals' | 'profile';
 
 const PAGE = {
   initial: { opacity: 0, y: 12 },
@@ -38,8 +38,10 @@ export default function App() {
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   const [regName, setRegName] = useState('');
+  const [regLastName, setRegLastName] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
+  const [regPhone, setRegPhone] = useState('');
   const [regError, setRegError] = useState('');
   const [regDone, setRegDone] = useState(false);
   const [view, setView] = useState<AppView>('venues');
@@ -69,7 +71,7 @@ export default function App() {
     if (!found) { setLoginError('Email o password non corretti.'); return; }
     if (found.status === 'pending')  { setLoginError('Il tuo account è in attesa di approvazione.'); return; }
     if (found.status === 'rejected') { setLoginError('Il tuo account non è stato approvato.'); return; }
-    const profile: UserProfile = { id: found.id, email: found.email, role: found.role, displayName: found.displayName };
+    const profile: UserProfile = { id: found.id, email: found.email, role: found.role, displayName: found.displayName, lastName: found.lastName, phone: found.phone, profileImage: found.profileImage };
     localStorage.setItem('nightplan_user', JSON.stringify(profile));
     setUser(profile);
     setView(found.role === 'admin' ? 'active-events' : 'events');
@@ -86,11 +88,20 @@ export default function App() {
       password: regPassword,
       role: 'pr',
       displayName: regName.trim(),
+      lastName: regLastName.trim(),
+      phone: regPhone.trim(),
       status: 'pending',
       createdAt: new Date().toISOString(),
     };
     setManagedUsers(prev => [...prev, newUser]);
     setRegDone(true);
+  };
+
+  const handleUpdateProfile = (updates: { displayName: string; lastName: string; profileImage?: string }) => {
+    setManagedUsers(prev => prev.map(u => u.id === user!.id ? { ...u, ...updates } : u));
+    const updated: UserProfile = { ...user!, ...updates };
+    setUser(updated);
+    localStorage.setItem('nightplan_user', JSON.stringify(updated));
   };
 
   const handleApproveUser = (id: string) =>
@@ -106,7 +117,7 @@ export default function App() {
     localStorage.removeItem('nightplan_user');
     setUser(null); setSelectedVenue(null); setSelectedEvent(null);
     setLoginEmail(''); setLoginPassword(''); setLoginError('');
-    setAuthScreen('login'); setRegDone(false); setRegName(''); setRegEmail(''); setRegPassword(''); setRegError('');
+    setAuthScreen('login'); setRegDone(false); setRegName(''); setRegLastName(''); setRegEmail(''); setRegPassword(''); setRegPhone(''); setRegError('');
   };
 
   const openVenue = (venue: Venue) => { setSelectedVenue(venue); setView('venue-events'); };
@@ -156,6 +167,7 @@ export default function App() {
     if (view === 'editor')         return 'Layout Tavoli';
     if (view === 'reservations')   return 'Prenotazioni';
     if (view === 'approvals')      return 'Approvazioni';
+    if (view === 'profile')        return 'Il Mio Profilo';
     return '';
   };
 
@@ -279,16 +291,30 @@ export default function App() {
                   </div>
 
                   <form onSubmit={handleRegister} className="space-y-3">
-                    <div className="space-y-1">
-                      <label className="text-[9px] hv font-black uppercase tracking-[0.2em] text-[#444]">Nome</label>
-                      <input required value={regName} onChange={e => { setRegName(e.target.value); setRegError(''); }}
-                        placeholder="Il tuo nome"
-                        className="w-full bg-[#0a0a0a] border border-[#2a2a2a] px-5 py-4 text-sm text-white placeholder-[#444] outline-none focus:border-accent/40 transition-colors font-sans" />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-[9px] hv font-black uppercase tracking-[0.2em] text-[#444]">Nome</label>
+                        <input required value={regName} onChange={e => { setRegName(e.target.value); setRegError(''); }}
+                          placeholder="Mario"
+                          className="w-full bg-[#0a0a0a] border border-[#2a2a2a] px-4 py-4 text-sm text-white placeholder-[#444] outline-none focus:border-accent/40 transition-colors font-sans" />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] hv font-black uppercase tracking-[0.2em] text-[#444]">Cognome</label>
+                        <input required value={regLastName} onChange={e => { setRegLastName(e.target.value); setRegError(''); }}
+                          placeholder="Rossi"
+                          className="w-full bg-[#0a0a0a] border border-[#2a2a2a] px-4 py-4 text-sm text-white placeholder-[#444] outline-none focus:border-accent/40 transition-colors font-sans" />
+                      </div>
                     </div>
                     <div className="space-y-1">
                       <label className="text-[9px] hv font-black uppercase tracking-[0.2em] text-[#444]">Email</label>
                       <input type="email" required value={regEmail} onChange={e => { setRegEmail(e.target.value); setRegError(''); }}
                         placeholder="tua@email.it"
+                        className="w-full bg-[#0a0a0a] border border-[#2a2a2a] px-5 py-4 text-sm text-white placeholder-[#444] outline-none focus:border-accent/40 transition-colors font-sans" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] hv font-black uppercase tracking-[0.2em] text-[#444]">Telefono</label>
+                      <input type="tel" required value={regPhone} onChange={e => { setRegPhone(e.target.value); setRegError(''); }}
+                        placeholder="+39 333 000 0000"
                         className="w-full bg-[#0a0a0a] border border-[#2a2a2a] px-5 py-4 text-sm text-white placeholder-[#444] outline-none focus:border-accent/40 transition-colors font-sans" />
                     </div>
                     <div className="space-y-1">
@@ -735,6 +761,13 @@ export default function App() {
               </motion.div>
             )}
 
+            {/* Profile — PR only */}
+            {view === 'profile' && user.role === 'pr' && (
+              <motion.div key="profile" {...PAGE}>
+                <PRProfile user={user} onSave={handleUpdateProfile} />
+              </motion.div>
+            )}
+
           </AnimatePresence>
         </div>
       </main>
@@ -829,6 +862,83 @@ export default function App() {
   );
 }
 
+/* ── PRProfile ───────────────────────────────────────────── */
+function PRProfile({ user, onSave }: {
+  user: UserProfile;
+  onSave: (u: { displayName: string; lastName: string; profileImage?: string }) => void;
+}) {
+  const [firstName, setFirstName]   = useState(user.displayName);
+  const [lastName,  setLastName]    = useState(user.lastName ?? '');
+  const [image,     setImage]       = useState(user.profileImage ?? '');
+  const [saved,     setSaved]       = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => setImage(ev.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const handleSave = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave({ displayName: firstName.trim(), lastName: lastName.trim(), profileImage: image || undefined });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  const initials = (firstName.substring(0, 1) + (lastName.substring(0, 1) || '')).toUpperCase();
+
+  return (
+    <div className="max-w-md">
+      <form onSubmit={handleSave} className="space-y-8">
+        {/* Avatar */}
+        <div className="flex flex-col items-center gap-4">
+          <button type="button" onClick={() => fileRef.current?.click()}
+            className="relative group w-24 h-24 bg-[#111] border border-[#2a2a2a] overflow-hidden hover:border-accent/40 transition-colors">
+            {image
+              ? <img src={image} alt="" className="w-full h-full object-cover" />
+              : <span className="hv font-black text-accent text-2xl">{initials}</span>
+            }
+            <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <span className="text-[9px] hv font-black uppercase tracking-widest text-white">Cambia</span>
+            </div>
+          </button>
+          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImage} />
+          <p className="text-[9px] font-sans uppercase tracking-widest text-[#444]">Clicca per cambiare foto</p>
+        </div>
+
+        {/* Fields */}
+        <div className="space-y-5">
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Nome">
+              <input required value={firstName} onChange={e => setFirstName(e.target.value)}
+                className="w-full bg-bg border border-[#2a2a2a] px-4 py-3 text-sm text-white outline-none focus:border-accent/40 transition-colors font-sans" />
+            </Field>
+            <Field label="Cognome">
+              <input value={lastName} onChange={e => setLastName(e.target.value)}
+                className="w-full bg-bg border border-[#2a2a2a] px-4 py-3 text-sm text-white outline-none focus:border-accent/40 transition-colors font-sans" />
+            </Field>
+          </div>
+          <Field label="Email">
+            <input disabled value={user.email}
+              className="w-full bg-[#080808] border border-[#1a1a1a] px-4 py-3 text-sm text-[#444] outline-none font-sans cursor-not-allowed" />
+          </Field>
+        </div>
+
+        <motion.button type="submit" whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
+          className={cn(
+            'w-full py-4 text-[10px] hv font-black uppercase tracking-[0.3em] transition-colors',
+            saved ? 'bg-green-500 text-black' : 'bg-accent text-black hover:bg-white'
+          )}>
+          {saved ? 'Salvato ✓' : 'Salva Modifiche'}
+        </motion.button>
+      </form>
+    </div>
+  );
+}
+
 const SAVED_ACCOUNTS = [
   { label: 'Admin', email: 'g.scanni7@gmail.com', password: '1234' },
   { label: 'PR',    email: 'lucavisca@gmail.com', password: '1234' },
@@ -917,15 +1027,23 @@ function SidebarContent({ user, view, onNav, onLogout, occupancyPct = 0, revenue
 
       {/* User */}
       <div className="px-6 py-6 border-t border-[#1e1e1e] shrink-0">
-        <div className="flex items-center gap-3 mb-5">
-          <div className="w-9 h-9 bg-[#111] border border-[#222] flex items-center justify-center shrink-0">
-            <span className="hv font-black text-accent text-xs">{user.displayName.substring(0, 2).toUpperCase()}</span>
+        <button
+          onClick={() => user.role === 'pr' ? onNav('profile') : undefined}
+          className={cn('flex items-center gap-3 mb-5 w-full text-left', user.role === 'pr' && 'group cursor-pointer')}
+        >
+          <div className="w-9 h-9 bg-[#111] border border-[#222] flex items-center justify-center shrink-0 overflow-hidden group-hover:border-accent/30 transition-colors">
+            {user.profileImage
+              ? <img src={user.profileImage} alt="" className="w-full h-full object-cover" />
+              : <span className="hv font-black text-accent text-xs">{user.displayName.substring(0, 2).toUpperCase()}</span>
+            }
           </div>
           <div className="min-w-0">
-            <p className="text-[11px] hv font-black uppercase text-white truncate">{user.displayName}</p>
+            <p className="text-[11px] hv font-black uppercase text-white truncate group-hover:text-accent transition-colors">
+              {user.displayName}{user.lastName ? ' ' + user.lastName : ''}
+            </p>
             <p className="text-[8px] font-sans text-[#777] uppercase tracking-widest mt-0.5">{user.role}</p>
           </div>
-        </div>
+        </button>
         <button onClick={onLogout}
           className="flex items-center gap-2 text-[#777] hover:text-accent transition-colors text-[9px] font-sans uppercase tracking-widest w-full">
           <LogOut size={12} /> Sign Out

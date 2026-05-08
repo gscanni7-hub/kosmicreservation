@@ -6,6 +6,9 @@ export interface ManagedUser {
   password: string;
   role: Role;
   displayName: string;
+  lastName: string;
+  phone: string;
+  profileImage?: string;
   status: 'pending' | 'approved' | 'rejected';
   createdAt: string;
 }
@@ -15,6 +18,9 @@ export interface UserProfile {
   email: string;
   role: Role;
   displayName: string;
+  lastName?: string;
+  phone?: string;
+  profileImage?: string;
 }
 
 export interface Table {
