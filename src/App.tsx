@@ -326,11 +326,12 @@ export default function App() {
                       <span>Accedi</span>
                       <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
                     </motion.button>
-                    <button type="button" onClick={() => { setAuthScreen('forgot'); setForgotError(''); setForgotSent(false); setForgotDevLink(''); }}
-                      className="w-full text-center text-[9px] font-sans text-[#666] hover:text-accent transition-colors mt-3 py-1 tracking-widest uppercase">
-                      Password dimenticata?
-                    </button>
                   </form>
+
+                  <button type="button" onClick={() => { setAuthScreen('forgot'); setForgotError(''); setForgotSent(false); setForgotDevLink(''); }}
+                    className="w-full text-center text-[11px] font-sans text-[#555] hover:text-accent transition-colors mt-4 py-2 tracking-widest uppercase">
+                    Password dimenticata?
+                  </button>
 
                   <div className="mt-10 pt-8 border-t border-[#1e1e1e]">
                     <p className="text-[9px] font-sans text-[#444] uppercase tracking-widest text-center mb-4">Sei un PR?</p>
