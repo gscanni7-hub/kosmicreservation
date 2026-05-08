@@ -211,6 +211,25 @@ export default function App() {
                     <p className="text-[#777] text-[10px] font-sans uppercase tracking-widest mt-2">Inserisci le tue credenziali</p>
                   </div>
 
+                  {/* Quick access */}
+                  <div className="flex gap-2 mb-5">
+                    {[
+                      { label: 'Admin', email: 'g.scanni7@gmail.com', password: '1234' },
+                      { label: 'PR',    email: 'lucavisca@gmail.com', password: '1234' },
+                    ].map(acc => (
+                      <button
+                        key={acc.label}
+                        type="button"
+                        onClick={() => { setLoginEmail(acc.email); setLoginPassword(acc.password); setLoginError(''); }}
+                        className="flex-1 border border-[#2a2a2a] hover:border-accent/40 px-3 py-2.5 transition-colors group text-left"
+                      >
+                        <p className="text-[9px] hv font-black uppercase tracking-widest text-[#555] group-hover:text-accent transition-colors">{acc.label}</p>
+                        <p className="text-[9px] font-sans text-[#333] mt-0.5 truncate">{acc.email}</p>
+                        <p className="text-[8px] font-mono text-[#222] mt-0.5">••••</p>
+                      </button>
+                    ))}
+                  </div>
+
                   <form onSubmit={handleLogin} className="space-y-3">
                     <div className="space-y-1">
                       <label className="text-[9px] hv font-black uppercase tracking-[0.2em] text-[#444]">Email</label>
