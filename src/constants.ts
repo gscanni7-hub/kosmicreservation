@@ -1,4 +1,4 @@
-import { Event, FloorPlan, Reservation, UserProfile, Venue } from './types';
+import { Event, FloorPlan, ManagedUser, Reservation, UserProfile, Venue } from './types';
 
 interface MockCredential {
   id: string;
@@ -9,23 +9,27 @@ interface MockCredential {
 }
 
 export const MOCK_USERS: MockCredential[] = [
-  { id: 'admin_1', email: 'luca@nightplan.it',  password: 'admin2025', role: 'admin', displayName: 'Luca Admin' },
-  { id: 'pr_1',    email: 'marco@nightplan.it', password: 'marco123',  role: 'pr',    displayName: 'Marco PR'   },
-  { id: 'pr_2',    email: 'sofia@nightplan.it', password: 'sofia123',  role: 'pr',    displayName: 'Sofia Bianchi' },
+  { id: 'admin_1', email: 'g.scanni7@gmail.com',  password: '1234', role: 'admin', displayName: 'Admin' },
+  { id: 'pr_1',    email: 'lucavisca@gmail.com',  password: '1234', role: 'pr',    displayName: 'Luca Visca' },
+];
+
+export const INITIAL_MANAGED_USERS: ManagedUser[] = [
+  { id: 'admin_1', email: 'g.scanni7@gmail.com', password: '1234', role: 'admin', displayName: 'Admin',      status: 'approved', createdAt: '2025-01-01T00:00:00.000Z' },
+  { id: 'pr_1',    email: 'lucavisca@gmail.com', password: '1234', role: 'pr',    displayName: 'Luca Visca', status: 'approved', createdAt: '2025-01-01T00:00:00.000Z' },
 ];
 
 export const MOCK_PR: UserProfile = {
   id: 'pr_1',
-  email: 'marco@nightplan.it',
+  email: 'lucavisca@gmail.com',
   role: 'pr',
-  displayName: 'Marco PR',
+  displayName: 'Luca Visca',
 };
 
 export const MOCK_ADMIN: UserProfile = {
   id: 'admin_1',
-  email: 'luca@nightplan.it',
+  email: 'g.scanni7@gmail.com',
   role: 'admin',
-  displayName: 'Luca Admin',
+  displayName: 'Admin',
 };
 
 const NAIF_FLOOR_PLAN: FloorPlan = {

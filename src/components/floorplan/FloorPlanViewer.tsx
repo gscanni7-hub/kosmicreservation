@@ -17,6 +17,7 @@ interface FloorPlanViewerProps {
 
 const STATUS_COLORS = {
   confirmed: '#ef4444',
+  pending:   '#f97316',
   blocked:   '#2a2a2a',
   free:      '#22c55e',
 } as const;
@@ -47,8 +48,13 @@ export default function FloorPlanViewer({
   const scale  = containerWidth > 0 ? containerWidth / canvasW : 1;
   const stageH = canvasH * scale;
 
-  const getStatus      = (id: string) => reservations.find(r => r.tableId === id && r.eventId === event.id)?.status ?? 'free';
   const getReservation = (id: string) => reservations.find(r => r.tableId === id && r.eventId === event.id);
+  const getStatus      = (id: string) => {
+    const res = getReservation(id);
+    if (!res) return 'free';
+    if (res.approvalStatus === 'pending') return 'pending';
+    return res.status;
+  };
 
   const canModify = (res: Reservation) =>
     currentUser.role === 'admin' || res.prId === currentUser.id;
@@ -132,6 +138,10 @@ export default function FloorPlanViewer({
           <div className="flex items-center gap-2 shrink-0">
             <span className="w-2 h-2 shrink-0 bg-[#ef4444]" />
             <span className="text-[8px] font-sans uppercase tracking-widest text-[#666]">Confirmed</span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="w-2 h-2 shrink-0 bg-[#f97316]" />
+            <span className="text-[8px] font-sans uppercase tracking-widest text-[#666]">In attesa</span>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <span className="w-2 h-2 shrink-0 bg-[#22c55e]" />

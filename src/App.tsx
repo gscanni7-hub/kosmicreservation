@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import {
   Calendar, Settings, BarChart3, LogOut, ChevronRight,
-  Plus, Download, Filter, Building2, X, ArrowLeft, Menu, Map, Pencil, Trash2
+  Plus, Download, Filter, Building2, X, ArrowLeft, Menu, Map, Pencil, Trash2,
+  UserCheck, Bell
 } from 'lucide-react';
-import { MOCK_USERS, INITIAL_VENUES, INITIAL_EVENTS, INITIAL_RESERVATIONS } from './constants';
-import { UserProfile, Event, Reservation, Venue, FloorPlan } from './types';
+import { MOCK_USERS, INITIAL_VENUES, INITIAL_EVENTS, INITIAL_RESERVATIONS, INITIAL_MANAGED_USERS } from './constants';
+import { UserProfile, Event, Reservation, Venue, FloorPlan, ManagedUser } from './types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from './lib/utils';
 import FloorPlanViewer from './components/floorplan/FloorPlanViewer';
 import FloorPlanEditor from './components/floorplan/FloorPlanEditor';
 
-type AppView = 'venues' | 'venue-events' | 'events' | 'active-events' | 'plan' | 'editor' | 'reservations';
+type AppView = 'venues' | 'venue-events' | 'events' | 'active-events' | 'plan' | 'editor' | 'reservations' | 'approvals';
 
 const PAGE = {
   initial: { opacity: 0, y: 12 },
@@ -26,9 +27,21 @@ export default function App() {
       return saved ? JSON.parse(saved) : null;
     } catch { return null; }
   });
+  const [managedUsers, setManagedUsers] = useState<ManagedUser[]>(() => {
+    try {
+      const saved = localStorage.getItem('nightplan_managed_users');
+      return saved ? JSON.parse(saved) : INITIAL_MANAGED_USERS;
+    } catch { return INITIAL_MANAGED_USERS; }
+  });
+  const [authScreen, setAuthScreen] = useState<'login' | 'register'>('login');
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState('');
+  const [regName, setRegName] = useState('');
+  const [regEmail, setRegEmail] = useState('');
+  const [regPassword, setRegPassword] = useState('');
+  const [regError, setRegError] = useState('');
+  const [regDone, setRegDone] = useState(false);
   const [view, setView] = useState<AppView>('venues');
   const [venues, setVenues] = useState(INITIAL_VENUES);
   const [events, setEvents] = useState(INITIAL_EVENTS);
@@ -44,22 +57,56 @@ export default function App() {
   const [editingFloorPlanMeta, setEditingFloorPlanMeta] = useState<{ venueId: string; fp: FloorPlan } | null>(null);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
 
+  useEffect(() => {
+    localStorage.setItem('nightplan_managed_users', JSON.stringify(managedUsers));
+  }, [managedUsers]);
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    const found = MOCK_USERS.find(
+    const found = managedUsers.find(
       u => u.email.toLowerCase() === loginEmail.trim().toLowerCase() && u.password === loginPassword
     );
     if (!found) { setLoginError('Email o password non corretti.'); return; }
+    if (found.status === 'pending')  { setLoginError('Il tuo account è in attesa di approvazione.'); return; }
+    if (found.status === 'rejected') { setLoginError('Il tuo account non è stato approvato.'); return; }
     const profile: UserProfile = { id: found.id, email: found.email, role: found.role, displayName: found.displayName };
     localStorage.setItem('nightplan_user', JSON.stringify(profile));
     setUser(profile);
     setView(found.role === 'admin' ? 'active-events' : 'events');
     setLoginError('');
   };
+
+  const handleRegister = (e: React.FormEvent) => {
+    e.preventDefault();
+    const exists = managedUsers.find(u => u.email.toLowerCase() === regEmail.trim().toLowerCase());
+    if (exists) { setRegError('Email già registrata.'); return; }
+    const newUser: ManagedUser = {
+      id: `pr_${Date.now()}`,
+      email: regEmail.trim().toLowerCase(),
+      password: regPassword,
+      role: 'pr',
+      displayName: regName.trim(),
+      status: 'pending',
+      createdAt: new Date().toISOString(),
+    };
+    setManagedUsers(prev => [...prev, newUser]);
+    setRegDone(true);
+  };
+
+  const handleApproveUser = (id: string) =>
+    setManagedUsers(prev => prev.map(u => u.id === id ? { ...u, status: 'approved' } : u));
+  const handleRejectUser = (id: string) =>
+    setManagedUsers(prev => prev.map(u => u.id === id ? { ...u, status: 'rejected' } : u));
+  const handleApproveReservation = (id: string) =>
+    setReservations(prev => prev.map(r => r.id === id ? { ...r, approvalStatus: 'approved' } : r));
+  const handleRejectReservation = (id: string) =>
+    setReservations(prev => prev.map(r => r.id === id ? { ...r, approvalStatus: 'rejected' } : r));
+
   const handleLogout = () => {
     localStorage.removeItem('nightplan_user');
     setUser(null); setSelectedVenue(null); setSelectedEvent(null);
     setLoginEmail(''); setLoginPassword(''); setLoginError('');
+    setAuthScreen('login'); setRegDone(false); setRegName(''); setRegEmail(''); setRegPassword(''); setRegError('');
   };
 
   const openVenue = (venue: Venue) => { setSelectedVenue(venue); setView('venue-events'); };
@@ -96,6 +143,10 @@ export default function App() {
   const occupancyPct = totalTables > 0 ? Math.round((bookedReservations.length / totalTables) * 100) : 0;
   const revenueEst   = bookedReservations.reduce((sum, r) => sum + r.budget, 0);
 
+  const pendingUsers = managedUsers.filter(u => u.status === 'pending');
+  const pendingResv  = reservations.filter(r => r.approvalStatus === 'pending');
+  const pendingCount = pendingUsers.length + pendingResv.length;
+
   const headerTitle = () => {
     if (view === 'venues')         return 'Location';
     if (view === 'venue-events')   return selectedVenue?.name ?? '';
@@ -104,6 +155,7 @@ export default function App() {
     if (view === 'plan')           return selectedEvent?.name ?? '';
     if (view === 'editor')         return 'Layout Tavoli';
     if (view === 'reservations')   return 'Prenotazioni';
+    if (view === 'approvals')      return 'Approvazioni';
     return '';
   };
 
@@ -151,65 +203,103 @@ export default function App() {
           </div>
 
           <div className="w-full max-w-xs">
-            <div className="mb-10">
-              <h2 className="hv font-black text-2xl uppercase text-white">Accedi</h2>
-              <p className="text-[#777] text-[10px] font-sans uppercase tracking-widest mt-2">Inserisci le tue credenziali</p>
-            </div>
+            <AnimatePresence mode="wait">
+              {authScreen === 'login' ? (
+                <motion.div key="login" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }}>
+                  <div className="mb-10">
+                    <h2 className="hv font-black text-2xl uppercase text-white">Accedi</h2>
+                    <p className="text-[#777] text-[10px] font-sans uppercase tracking-widest mt-2">Inserisci le tue credenziali</p>
+                  </div>
 
-            <form onSubmit={handleLogin} className="space-y-3">
-              <div className="space-y-1">
-                <label className="text-[9px] hv font-black uppercase tracking-[0.2em] text-[#444]">Email</label>
-                <input
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={loginEmail}
-                  onChange={e => { setLoginEmail(e.target.value); setLoginError(''); }}
-                  placeholder="tua@email.it"
-                  className="w-full bg-[#0a0a0a] border border-[#2a2a2a] px-5 py-4 text-sm text-white placeholder-[#444] outline-none focus:border-accent/40 transition-colors font-sans"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[9px] hv font-black uppercase tracking-[0.2em] text-[#444]">Password</label>
-                <input
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  value={loginPassword}
-                  onChange={e => { setLoginPassword(e.target.value); setLoginError(''); }}
-                  placeholder="••••••••"
-                  className="w-full bg-[#0a0a0a] border border-[#2a2a2a] px-5 py-4 text-sm text-white placeholder-[#444] outline-none focus:border-accent/40 transition-colors font-sans"
-                />
-              </div>
+                  <form onSubmit={handleLogin} className="space-y-3">
+                    <div className="space-y-1">
+                      <label className="text-[9px] hv font-black uppercase tracking-[0.2em] text-[#444]">Email</label>
+                      <input type="email" autoComplete="email" required value={loginEmail}
+                        onChange={e => { setLoginEmail(e.target.value); setLoginError(''); }}
+                        placeholder="tua@email.it"
+                        className="w-full bg-[#0a0a0a] border border-[#2a2a2a] px-5 py-4 text-sm text-white placeholder-[#444] outline-none focus:border-accent/40 transition-colors font-sans" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] hv font-black uppercase tracking-[0.2em] text-[#444]">Password</label>
+                      <input type="password" autoComplete="current-password" required value={loginPassword}
+                        onChange={e => { setLoginPassword(e.target.value); setLoginError(''); }}
+                        placeholder="••••••••"
+                        className="w-full bg-[#0a0a0a] border border-[#2a2a2a] px-5 py-4 text-sm text-white placeholder-[#444] outline-none focus:border-accent/40 transition-colors font-sans" />
+                    </div>
+                    {loginError && <p className="text-red-500/80 text-[10px] font-sans uppercase tracking-widest pt-1">{loginError}</p>}
+                    <motion.button type="submit" whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
+                      className="group w-full bg-accent text-black py-[18px] text-[10px] hv font-black uppercase tracking-[0.3em] flex items-center justify-between px-6 hover:bg-white transition-colors mt-2">
+                      <span>Accedi</span>
+                      <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                    </motion.button>
+                  </form>
 
-              {loginError && (
-                <p className="text-red-500/80 text-[10px] font-sans uppercase tracking-widest pt-1">{loginError}</p>
+                  <div className="mt-10 pt-8 border-t border-[#1e1e1e]">
+                    <p className="text-[9px] font-sans text-[#444] uppercase tracking-widest text-center mb-4">Sei un PR?</p>
+                    <button onClick={() => { setAuthScreen('register'); setRegError(''); setRegDone(false); }}
+                      className="w-full py-3.5 text-[9px] hv font-black uppercase tracking-[0.2em] border border-[#2a2a2a] text-[#666] hover:border-accent/40 hover:text-accent transition-colors">
+                      Registrati
+                    </button>
+                  </div>
+                </motion.div>
+              ) : regDone ? (
+                <motion.div key="done" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18 }}
+                  className="text-center py-8">
+                  <div className="w-14 h-14 bg-accent/10 border border-accent/20 flex items-center justify-center mx-auto mb-6">
+                    <UserCheck size={24} className="text-accent" />
+                  </div>
+                  <h2 className="hv font-black text-xl uppercase text-white mb-3">Richiesta Inviata</h2>
+                  <p className="text-[#777] text-[10px] font-sans uppercase tracking-widest leading-loose">
+                    Il tuo account è in attesa<br />di approvazione admin.
+                  </p>
+                  <button onClick={() => { setAuthScreen('login'); setRegDone(false); setRegName(''); setRegEmail(''); setRegPassword(''); }}
+                    className="mt-8 w-full py-3.5 text-[9px] hv font-black uppercase tracking-[0.2em] border border-[#2a2a2a] text-[#666] hover:border-accent/40 hover:text-accent transition-colors">
+                    Torna al Login
+                  </button>
+                </motion.div>
+              ) : (
+                <motion.div key="register" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }}>
+                  <div className="mb-10">
+                    <h2 className="hv font-black text-2xl uppercase text-white">Registrati</h2>
+                    <p className="text-[#777] text-[10px] font-sans uppercase tracking-widest mt-2">Crea il tuo account PR</p>
+                  </div>
+
+                  <form onSubmit={handleRegister} className="space-y-3">
+                    <div className="space-y-1">
+                      <label className="text-[9px] hv font-black uppercase tracking-[0.2em] text-[#444]">Nome</label>
+                      <input required value={regName} onChange={e => { setRegName(e.target.value); setRegError(''); }}
+                        placeholder="Il tuo nome"
+                        className="w-full bg-[#0a0a0a] border border-[#2a2a2a] px-5 py-4 text-sm text-white placeholder-[#444] outline-none focus:border-accent/40 transition-colors font-sans" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] hv font-black uppercase tracking-[0.2em] text-[#444]">Email</label>
+                      <input type="email" required value={regEmail} onChange={e => { setRegEmail(e.target.value); setRegError(''); }}
+                        placeholder="tua@email.it"
+                        className="w-full bg-[#0a0a0a] border border-[#2a2a2a] px-5 py-4 text-sm text-white placeholder-[#444] outline-none focus:border-accent/40 transition-colors font-sans" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] hv font-black uppercase tracking-[0.2em] text-[#444]">Password</label>
+                      <input type="password" required value={regPassword} onChange={e => { setRegPassword(e.target.value); setRegError(''); }}
+                        placeholder="••••••••"
+                        className="w-full bg-[#0a0a0a] border border-[#2a2a2a] px-5 py-4 text-sm text-white placeholder-[#444] outline-none focus:border-accent/40 transition-colors font-sans" />
+                    </div>
+                    {regError && <p className="text-red-500/80 text-[10px] font-sans uppercase tracking-widest pt-1">{regError}</p>}
+                    <motion.button type="submit" whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
+                      className="group w-full bg-accent text-black py-[18px] text-[10px] hv font-black uppercase tracking-[0.3em] flex items-center justify-between px-6 hover:bg-white transition-colors mt-2">
+                      <span>Invia Richiesta</span>
+                      <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                    </motion.button>
+                  </form>
+
+                  <div className="mt-8 pt-6 border-t border-[#1e1e1e]">
+                    <button onClick={() => { setAuthScreen('login'); setRegError(''); }}
+                      className="w-full text-[9px] hv font-black uppercase tracking-[0.2em] text-[#444] hover:text-[#777] transition-colors py-2">
+                      ← Torna al Login
+                    </button>
+                  </div>
+                </motion.div>
               )}
-
-              <motion.button
-                type="submit"
-                whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
-                className="group w-full bg-accent text-black py-[18px] text-[10px] hv font-black uppercase tracking-[0.3em] flex items-center justify-between px-6 hover:bg-white transition-colors mt-2"
-              >
-                <span>Accedi</span>
-                <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
-              </motion.button>
-            </form>
-
-            <div className="mt-10 pt-8 border-t border-[#1e1e1e] flex gap-3">
-              <button
-                onClick={() => { const u = MOCK_USERS.find(u => u.role === 'pr')!; const p: UserProfile = { id: u.id, email: u.email, role: u.role, displayName: u.displayName }; localStorage.setItem('nightplan_user', JSON.stringify(p)); setUser(p); setView('events'); }}
-                className="flex-1 py-3 text-[9px] hv font-black uppercase tracking-[0.15em] border border-[#2a2a2a] text-[#444] hover:border-[#333] hover:text-[#666] transition-colors"
-              >
-                Demo PR
-              </button>
-              <button
-                onClick={() => { const u = MOCK_USERS.find(u => u.role === 'admin')!; const p: UserProfile = { id: u.id, email: u.email, role: u.role, displayName: u.displayName }; localStorage.setItem('nightplan_user', JSON.stringify(p)); setUser(p); setView('venues'); }}
-                className="flex-1 py-3 text-[9px] hv font-black uppercase tracking-[0.15em] border border-[#2a2a2a] text-[#444] hover:border-[#333] hover:text-[#666] transition-colors"
-              >
-                Demo Proprietario
-              </button>
-            </div>
+            </AnimatePresence>
           </div>
         </motion.div>
       </div>
@@ -249,6 +339,7 @@ export default function App() {
                 onLogout={handleLogout}
                 occupancyPct={occupancyPct}
                 revenueEst={revenueEst}
+                pendingCount={pendingCount}
               />
             </motion.div>
           </>
@@ -262,6 +353,7 @@ export default function App() {
           onLogout={handleLogout}
           occupancyPct={occupancyPct}
           revenueEst={revenueEst}
+          pendingCount={pendingCount}
         />
       </aside>
 
@@ -412,7 +504,10 @@ export default function App() {
                   <FloorPlanViewer
                     event={selectedEvent} floorPlan={fp}
                     reservations={reservations} currentUser={user}
-                    onReservationAdded={(res) => setReservations(prev => [...prev, res])}
+                    onReservationAdded={(res) => setReservations(prev => [...prev, {
+                      ...res,
+                      approvalStatus: user.role === 'admin' ? 'approved' : 'pending',
+                    }])}
                     onReservationUpdated={(res) => setReservations(prev => prev.map(r => r.id === res.id ? res : r))}
                     onReservationRemoved={(id) => setReservations(prev => prev.filter(r => r.id !== id))}
                   />
@@ -524,6 +619,108 @@ export default function App() {
               </motion.div>
             )}
 
+            {/* Approvals — admin only */}
+            {view === 'approvals' && user.role === 'admin' && (
+              <motion.div key="approvals" {...PAGE}>
+                <PageTitle
+                  title="Approvazioni"
+                  sub={pendingCount > 0 ? `${pendingCount} element${pendingCount !== 1 ? 'i' : 'o'} in attesa` : 'Nessun elemento in attesa'}
+                />
+
+                {/* Pending PRs */}
+                <div className="mb-10">
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="text-[9px] font-sans uppercase tracking-[0.4em] text-accent font-bold">Nuovi PR</span>
+                    {pendingUsers.length > 0 && (
+                      <span className="bg-accent text-black text-[8px] hv font-black px-2 py-0.5 leading-none">{pendingUsers.length}</span>
+                    )}
+                  </div>
+                  {pendingUsers.length === 0 ? (
+                    <div className="border border-dashed border-[#2a2a2a] py-10 px-6 text-center">
+                      <p className="text-[9px] font-sans uppercase tracking-widest text-[#444]">Nessuna richiesta in attesa</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {pendingUsers.map(u => (
+                        <div key={u.id} className="flex items-center justify-between p-5 bg-card border border-[#2a2a2a] hover:border-[#333] transition-colors">
+                          <div className="flex items-center gap-4 min-w-0">
+                            <div className="w-9 h-9 bg-[#111] border border-[#222] flex items-center justify-center shrink-0">
+                              <span className="hv font-black text-[#666] text-xs">{u.displayName.substring(0, 2).toUpperCase()}</span>
+                            </div>
+                            <div className="min-w-0">
+                              <p className="hv font-black uppercase text-white text-[11px]">{u.displayName}</p>
+                              <p className="text-[9px] font-sans text-[#666] mt-0.5">{u.email}</p>
+                              <p className="text-[8px] font-sans text-[#444] uppercase tracking-widest mt-0.5">
+                                {new Date(u.createdAt).toLocaleDateString('it-IT')}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <button onClick={() => handleApproveUser(u.id)}
+                              className="px-4 py-2 bg-accent text-black text-[9px] hv font-black uppercase tracking-widest hover:bg-white transition-colors">
+                              Approva
+                            </button>
+                            <button onClick={() => handleRejectUser(u.id)}
+                              className="px-4 py-2 border border-[#2a2a2a] text-red-500/70 text-[9px] hv font-black uppercase tracking-widest hover:border-red-500 hover:text-red-500 transition-colors">
+                              Rifiuta
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Pending Reservations */}
+                <div>
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="text-[9px] font-sans uppercase tracking-[0.4em] text-accent font-bold">Prenotazioni in Attesa</span>
+                    {pendingResv.length > 0 && (
+                      <span className="bg-accent text-black text-[8px] hv font-black px-2 py-0.5 leading-none">{pendingResv.length}</span>
+                    )}
+                  </div>
+                  {pendingResv.length === 0 ? (
+                    <div className="border border-dashed border-[#2a2a2a] py-10 px-6 text-center">
+                      <p className="text-[9px] font-sans uppercase tracking-widest text-[#444]">Nessuna prenotazione in attesa</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {pendingResv.map(r => {
+                        const ev = events.find(e => e.id === r.eventId);
+                        return (
+                          <div key={r.id} className="flex items-center justify-between p-5 bg-card border border-[#2a2a2a] hover:border-[#333] transition-colors gap-4">
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-3 flex-wrap">
+                                <span className="hv font-black uppercase text-white text-sm">{r.customerName}</span>
+                                <span className="text-[8px] font-sans uppercase tracking-widest text-[#666] border border-[#2a2a2a] px-2 py-0.5">Tav. {r.tableName}</span>
+                                <span className="text-[8px] font-sans uppercase tracking-widest text-orange-400 border border-orange-500/30 px-2 py-0.5">In attesa</span>
+                              </div>
+                              <div className="flex items-center gap-4 mt-2 flex-wrap">
+                                {ev && <p className="text-[9px] font-sans text-[#666]">{ev.name}</p>}
+                                <p className="text-[9px] font-sans text-[#555]">PR: {r.prName}</p>
+                                <p className="text-[9px] font-sans text-[#555]">{r.guestsCount} pax</p>
+                                <p className="text-[9px] font-sans text-accent">€{r.budget}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <button onClick={() => handleApproveReservation(r.id)}
+                                className="px-4 py-2 bg-accent text-black text-[9px] hv font-black uppercase tracking-widest hover:bg-white transition-colors">
+                                Approva
+                              </button>
+                              <button onClick={() => handleRejectReservation(r.id)}
+                                className="px-4 py-2 border border-[#2a2a2a] text-red-500/70 text-[9px] hv font-black uppercase tracking-widest hover:border-red-500 hover:text-red-500 transition-colors">
+                                Rifiuta
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            )}
+
           </AnimatePresence>
         </div>
       </main>
@@ -619,12 +816,13 @@ export default function App() {
 }
 
 /* ── SidebarContent ──────────────────────────────────────── */
-function SidebarContent({ user, view, onNav, onLogout, occupancyPct = 0, revenueEst = 0 }: {
+function SidebarContent({ user, view, onNav, onLogout, occupancyPct = 0, revenueEst = 0, pendingCount = 0 }: {
   user: UserProfile; view: string;
   onNav: (v: string) => void;
   onLogout: () => void;
   occupancyPct?: number;
   revenueEst?: number;
+  pendingCount?: number;
 }) {
   const revenueDisplay = revenueEst >= 1000
     ? `€${(revenueEst / 1000).toFixed(1)}K`
@@ -681,6 +879,10 @@ function SidebarContent({ user, view, onNav, onLogout, occupancyPct = 0, revenue
             <NavLink icon={<BarChart3 size={14}/>} label="Prenotazioni"
               active={view==='reservations'}
               onClick={() => onNav('reservations')} />
+            <NavLink icon={<Bell size={14}/>} label="Approvazioni"
+              active={view==='approvals'}
+              onClick={() => onNav('approvals')}
+              badge={pendingCount} />
           </>
         ) : (
           <>
@@ -715,7 +917,7 @@ function SidebarContent({ user, view, onNav, onLogout, occupancyPct = 0, revenue
 }
 
 /* ── NavLink ─────────────────────────────────────────────── */
-function NavLink({ icon, label, active, onClick }: { icon: React.ReactNode; label: string; active?: boolean; onClick: () => void }) {
+function NavLink({ icon, label, active, onClick, badge }: { icon: React.ReactNode; label: string; active?: boolean; onClick: () => void; badge?: number }) {
   return (
     <button onClick={onClick}
       className={cn(
@@ -727,7 +929,12 @@ function NavLink({ icon, label, active, onClick }: { icon: React.ReactNode; labe
       <span className={cn('transition-colors shrink-0', active ? 'text-accent' : 'text-[#666] group-hover:text-[#555]')}>
         {icon}
       </span>
-      {label}
+      <span className="flex-1 text-left">{label}</span>
+      {badge != null && badge > 0 && (
+        <span className="bg-accent text-black text-[8px] hv font-black px-1.5 py-0.5 leading-none min-w-[18px] text-center shrink-0">
+          {badge}
+        </span>
+      )}
     </button>
   );
 }

@@ -1,5 +1,15 @@
 export type Role = 'admin' | 'pr';
 
+export interface ManagedUser {
+  id: string;
+  email: string;
+  password: string;
+  role: Role;
+  displayName: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+}
+
 export interface UserProfile {
   id: string;
   email: string;
@@ -64,6 +74,7 @@ export interface Reservation {
   budget: number;
   notes: string;
   status: ReservationStatus;
+  approvalStatus: 'pending' | 'approved' | 'rejected';
   createdAt: string;
 }
 
