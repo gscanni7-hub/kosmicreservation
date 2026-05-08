@@ -23,10 +23,41 @@ const DISPOSABLE_DOMAINS = new Set([
   'throwaway.email','maildrop.cc','mailnesia.com','spamgourmet.com','wegwerfmail.de',
   'mytrashmail.com','throwam.com','mailtemp.info','mailtemp.net','luxusmail.org',
   'spamfree24.org','mailnull.com','spamify.com','trash-mail.at','fakemails.com',
-  'fakemail.fr','jetable.fr.nf','getnada.com','mailnull.com','spamhereplease.com',
-  'getairmail.com','filzmail.com','owlpic.com','trbvm.com','spamgourmet.net',
-  'spamgourmet.org','mailtemp.co.uk','anonaddy.com','33mail.com','spamex.com',
+  'fakemail.fr','jetable.fr.nf','getnada.com','spamhereplease.com',
+  'getairmail.com','filzmail.com','owlpic.com','trbvm.com',
+  'spamgourmet.net','spamgourmet.org','mailtemp.co.uk','anonaddy.com','33mail.com','spamex.com',
 ]);
+
+// Provider noti → TLD validi. Se il nome del dominio corrisponde ma il TLD è sbagliato, l'errore suggerisce la correzione.
+const KNOWN_PROVIDERS: Record<string, { tlds: string[]; canonical: string }> = {
+  gmail:       { tlds: ['com'],                                              canonical: 'gmail.com' },
+  googlemail:  { tlds: ['com'],                                              canonical: 'gmail.com' },
+  outlook:     { tlds: ['com','it','fr','de','es','be','at','ch','co.uk'],   canonical: 'outlook.com' },
+  hotmail:     { tlds: ['com','it','fr','de','es','be','at','ch','co.uk'],   canonical: 'hotmail.com' },
+  live:        { tlds: ['com','it','fr','de','es','be','at','ch','co.uk'],   canonical: 'live.com' },
+  msn:         { tlds: ['com'],                                              canonical: 'msn.com' },
+  yahoo:       { tlds: ['com','it','fr','de','es','co.uk','co.jp','gr','ro'],canonical: 'yahoo.com' },
+  ymail:       { tlds: ['com'],                                              canonical: 'ymail.com' },
+  icloud:      { tlds: ['com'],                                              canonical: 'icloud.com' },
+  me:          { tlds: ['com'],                                              canonical: 'me.com' },
+  mac:         { tlds: ['com'],                                              canonical: 'mac.com' },
+  libero:      { tlds: ['it'],                                               canonical: 'libero.it' },
+  virgilio:    { tlds: ['it'],                                               canonical: 'virgilio.it' },
+  alice:       { tlds: ['it'],                                               canonical: 'alice.it' },
+  tin:         { tlds: ['it'],                                               canonical: 'tin.it' },
+  tiscali:     { tlds: ['it','co.uk','de','fr','es'],                        canonical: 'tiscali.it' },
+  fastwebnet:  { tlds: ['it'],                                               canonical: 'fastwebnet.it' },
+  protonmail:  { tlds: ['com'],                                              canonical: 'protonmail.com' },
+  proton:      { tlds: ['me','com'],                                         canonical: 'proton.me' },
+  tutanota:    { tlds: ['com','de'],                                         canonical: 'tutanota.com' },
+  tutamail:    { tlds: ['com'],                                              canonical: 'tutamail.com' },
+  tuta:        { tlds: ['io'],                                               canonical: 'tuta.io' },
+  zoho:        { tlds: ['com'],                                              canonical: 'zoho.com' },
+  aol:         { tlds: ['com'],                                              canonical: 'aol.com' },
+  gmx:         { tlds: ['com','de','net','at','it','fr','es','ch'],          canonical: 'gmx.com' },
+  fastmail:    { tlds: ['com','fm'],                                         canonical: 'fastmail.com' },
+  posteo:      { tlds: ['de','net','eu','org'],                              canonical: 'posteo.de' },
+};
 
 function validateEmail(email: string): string {
   const trimmed = email.trim().toLowerCase();
@@ -39,6 +70,15 @@ function validateEmail(email: string): string {
     return 'Dominio email non valido.';
   if (/^(test|fake|temp|trash|spam|aaa|bbb|xxx|yyy|zzz|asdf|qwerty|user123|admin|root)$/.test(local))
     return 'Inserisci un indirizzo email reale.';
+
+  // Controlla se il provider è noto ma il TLD è sbagliato
+  const dotIdx = domain.indexOf('.');
+  const providerName = domain.slice(0, dotIdx);
+  const tld = domain.slice(dotIdx + 1);
+  const known = KNOWN_PROVIDERS[providerName];
+  if (known && !known.tlds.includes(tld))
+    return `"${domain}" non esiste. Intendevi ${known.canonical}?`;
+
   return '';
 }
 
