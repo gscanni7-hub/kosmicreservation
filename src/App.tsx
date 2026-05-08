@@ -326,10 +326,10 @@ export default function App() {
                       <span>Accedi</span>
                       <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
                     </motion.button>
-                    <div className="text-center pt-1">
+                    <div className="text-center pt-2">
                       <button type="button"
                         onClick={() => { setAuthScreen('forgot'); setForgotError(''); setForgotSent(false); setForgotDevLink(''); }}
-                        className="text-[9px] font-sans text-[#666] hover:text-accent transition-colors underline">
+                        className="text-[10px] font-sans text-[#999] hover:text-accent transition-colors underline tracking-widest uppercase">
                         Password dimenticata?
                       </button>
                     </div>
