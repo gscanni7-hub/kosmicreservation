@@ -444,14 +444,41 @@ export default function App() {
             <AnimatePresence mode="wait">
               {authScreen === 'login' ? (
                 <motion.div key="login" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }}>
-                  <div className="mb-10">
-                    <h2 className="hv font-black text-2xl uppercase text-white">Accedi</h2>
-                    <p className="text-[#999] text-[10px] font-sans uppercase tracking-widest mt-2">Inserisci le tue credenziali</p>
+
+                  {/* Header */}
+                  <div className="mb-8">
+                    <h2 className="hv font-black text-2xl uppercase text-white tracking-tight">Accedi</h2>
+                    <p className="text-[#555] text-[9px] font-sans uppercase tracking-[0.25em] mt-1.5">Bentornato nella piattaforma</p>
                   </div>
 
+                  {/* Google — metodo principale */}
+                  <button
+                    type="button"
+                    onClick={handleGoogleSignIn}
+                    className="group w-full flex items-center justify-center gap-3 py-[15px] bg-[#1e1e1e] border border-[#333] hover:border-[#4a4a4a] hover:bg-[#242424] transition-all duration-200 mb-6"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+                      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                    </svg>
+                    <span className="text-[10px] hv font-black uppercase tracking-[0.18em] text-[#aaa] group-hover:text-white transition-colors">
+                      Accedi con Google
+                    </span>
+                  </button>
+
+                  {/* Divider */}
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="flex-1 h-px bg-[#272727]" />
+                    <span className="text-[8px] font-sans uppercase tracking-[0.3em] text-[#444]">oppure con email</span>
+                    <div className="flex-1 h-px bg-[#272727]" />
+                  </div>
+
+                  {/* Form email/password */}
                   <form onSubmit={handleLogin} className="space-y-3">
                     <div className="space-y-1">
-                      <label className="text-[9px] hv font-black uppercase tracking-[0.2em] text-[#666]">Email</label>
+                      <label className="text-[9px] hv font-black uppercase tracking-[0.2em] text-[#555]">Email</label>
                       <input
                         type="email"
                         list="nightplan-accounts"
@@ -465,64 +492,42 @@ export default function App() {
                           if (match) setLoginPassword(match.password);
                         }}
                         placeholder="tua@email.it"
-                        className="w-full bg-[#141414] border border-[#383838] px-5 py-4 text-sm text-white placeholder-[#444] outline-none focus:border-accent/40 transition-colors font-sans"
+                        className="w-full bg-[#141414] border border-[#2e2e2e] px-5 py-3.5 text-sm text-white placeholder-[#383838] outline-none focus:border-accent/40 transition-colors font-sans"
                       />
                       <datalist id="nightplan-accounts">
                         {SAVED_ACCOUNTS.map(a => <option key={a.email} value={a.email}>{a.label}</option>)}
                       </datalist>
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[9px] hv font-black uppercase tracking-[0.2em] text-[#666]">Password</label>
+                      <div className="flex items-center justify-between">
+                        <label className="text-[9px] hv font-black uppercase tracking-[0.2em] text-[#555]">Password</label>
+                        <button type="button"
+                          onClick={() => { setAuthScreen('forgot'); setForgotError(''); setForgotSent(false); setForgotDevLink(''); }}
+                          className="text-[8px] font-sans text-[#444] hover:text-accent transition-colors uppercase tracking-widest">
+                          Dimenticata?
+                        </button>
+                      </div>
                       <input type="password" autoComplete="current-password" required value={loginPassword}
                         onChange={e => { setLoginPassword(e.target.value); setLoginError(''); }}
                         placeholder="••••••••"
-                        className="w-full bg-[#141414] border border-[#383838] px-5 py-4 text-sm text-white placeholder-[#444] outline-none focus:border-accent/40 transition-colors font-sans" />
+                        className="w-full bg-[#141414] border border-[#2e2e2e] px-5 py-3.5 text-sm text-white placeholder-[#383838] outline-none focus:border-accent/40 transition-colors font-sans" />
                     </div>
                     {loginError && <p className="text-red-500/80 text-[10px] font-sans uppercase tracking-widest pt-1">{loginError}</p>}
                     <motion.button type="submit" whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
-                      className="group w-full bg-accent text-black py-[18px] text-[10px] hv font-black uppercase tracking-[0.3em] flex items-center justify-between px-6 hover:bg-white transition-all duration-200 mt-2 hover:shadow-[0_0_24px_rgba(212,98,42,0.40)] glow-sm">
+                      className="group w-full bg-accent text-black py-[15px] text-[10px] hv font-black uppercase tracking-[0.3em] flex items-center justify-between px-6 hover:bg-white transition-all duration-200 mt-1 hover:shadow-[0_0_24px_rgba(212,98,42,0.30)] glow-sm">
                       <span>Accedi</span>
-                      <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                      <ChevronRight size={13} className="group-hover:translate-x-1 transition-transform" />
                     </motion.button>
-                    <div className="text-center pt-3">
-                      <button type="button"
-                        onClick={() => { setAuthScreen('forgot'); setForgotError(''); setForgotSent(false); setForgotDevLink(''); }}
-                        className="text-[10px] font-sans text-white/50 hover:text-accent transition-colors underline tracking-widest uppercase font-medium">
-                        Password dimenticata?
-                      </button>
-                    </div>
                   </form>
 
-                  <div className="mt-6">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="flex-1 h-px bg-[#2e2e2e]" />
-                      <span className="text-[8px] font-sans uppercase tracking-widest text-[#666]">oppure</span>
-                      <div className="flex-1 h-px bg-[#2e2e2e]" />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleGoogleSignIn}
-                      className="w-full flex items-center justify-center gap-3 py-3.5 border border-[#383838] hover:border-[#555] hover:bg-white/[0.03] transition-all duration-200 group"
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
-                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                      </svg>
-                      <span className="text-[9px] hv font-black uppercase tracking-[0.2em] text-[#999] group-hover:text-white transition-colors">
-                        Accedi con Google
-                      </span>
-                    </button>
-                  </div>
-
-                  <div className="mt-8 pt-8 border-t border-[#2e2e2e]">
-                    <p className="text-[9px] font-sans text-[#666] uppercase tracking-widest text-center mb-4">Sei un PR?</p>
+                  {/* Registrazione */}
+                  <p className="text-center text-[9px] font-sans text-[#444] uppercase tracking-widest mt-8">
+                    Sei un PR?{' '}
                     <button onClick={() => { setAuthScreen('register'); setRegError(''); setRegDone(false); }}
-                      className="w-full py-3.5 text-[9px] hv font-black uppercase tracking-[0.2em] border border-[#383838] text-[#888] hover:border-accent/40 hover:text-accent transition-colors">
+                      className="text-[#777] hover:text-accent transition-colors underline underline-offset-2">
                       Registrati
                     </button>
-                  </div>
+                  </p>
                 </motion.div>
               ) : authScreen === 'forgot' ? (
                 <motion.div key="forgot" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }}>
@@ -635,9 +640,34 @@ export default function App() {
                 </motion.div>
               ) : (
                 <motion.div key="register" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }}>
-                  <div className="mb-10">
-                    <h2 className="hv font-black text-2xl uppercase text-white">Registrati</h2>
-                    <p className="text-[#999] text-[10px] font-sans uppercase tracking-widest mt-2">Crea il tuo account PR</p>
+                  {/* Header */}
+                  <div className="mb-8">
+                    <h2 className="hv font-black text-2xl uppercase text-white tracking-tight">Registrati</h2>
+                    <p className="text-[#555] text-[9px] font-sans uppercase tracking-[0.25em] mt-1.5">Crea il tuo account PR</p>
+                  </div>
+
+                  {/* Google — metodo rapido */}
+                  <button
+                    type="button"
+                    onClick={handleGoogleSignIn}
+                    className="group w-full flex items-center justify-center gap-3 py-[15px] bg-[#1e1e1e] border border-[#333] hover:border-[#4a4a4a] hover:bg-[#242424] transition-all duration-200 mb-6"
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
+                      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                    </svg>
+                    <span className="text-[10px] hv font-black uppercase tracking-[0.18em] text-[#aaa] group-hover:text-white transition-colors">
+                      Registrati con Google
+                    </span>
+                  </button>
+
+                  {/* Divider */}
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="flex-1 h-px bg-[#272727]" />
+                    <span className="text-[8px] font-sans uppercase tracking-[0.3em] text-[#444]">oppure manualmente</span>
+                    <div className="flex-1 h-px bg-[#272727]" />
                   </div>
 
                   <form onSubmit={handleRegister} className="space-y-3">
@@ -713,35 +743,13 @@ export default function App() {
                     </motion.button>
                   </form>
 
-                  <div className="mt-6">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="flex-1 h-px bg-[#2e2e2e]" />
-                      <span className="text-[8px] font-sans uppercase tracking-widest text-[#666]">oppure registrati con</span>
-                      <div className="flex-1 h-px bg-[#2e2e2e]" />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleGoogleSignIn}
-                      className="w-full flex items-center justify-center gap-3 py-3.5 border border-[#383838] hover:border-[#555] hover:bg-white/[0.03] transition-all duration-200 group"
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
-                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                      </svg>
-                      <span className="text-[9px] hv font-black uppercase tracking-[0.2em] text-[#999] group-hover:text-white transition-colors">
-                        Continua con Google
-                      </span>
-                    </button>
-                  </div>
-
-                  <div className="mt-6 pt-6 border-t border-[#2e2e2e]">
+                  <p className="text-center text-[9px] font-sans text-[#444] uppercase tracking-widest mt-8">
+                    Hai già un account?{' '}
                     <button onClick={() => { setAuthScreen('login'); setRegError(''); setRegEmailError(''); setRegPhoneError(''); }}
-                      className="w-full text-[9px] hv font-black uppercase tracking-[0.2em] text-[#666] hover:text-[#999] transition-colors py-2">
-                      ← Torna al Login
+                      className="text-[#777] hover:text-accent transition-colors underline underline-offset-2">
+                      Accedi
                     </button>
-                  </div>
+                  </p>
                 </motion.div>
               )}
             </AnimatePresence>
