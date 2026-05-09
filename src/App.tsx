@@ -132,7 +132,17 @@ export default function App() {
   const [managedUsers, setManagedUsers] = useState<ManagedUser[]>(() => {
     try {
       const saved = localStorage.getItem('nightplan_managed_users');
-      return saved ? JSON.parse(saved) : INITIAL_MANAGED_USERS;
+      if (!saved) return INITIAL_MANAGED_USERS;
+      const parsed: ManagedUser[] = JSON.parse(saved);
+      const merged = [...parsed];
+      for (const sys of INITIAL_MANAGED_USERS) {
+        if (!merged.find(u => u.id === sys.id)) merged.unshift(sys);
+        else {
+          const idx = merged.findIndex(u => u.id === sys.id);
+          merged[idx] = { ...merged[idx], role: sys.role, status: 'approved' };
+        }
+      }
+      return merged;
     } catch { return INITIAL_MANAGED_USERS; }
   });
   const [authScreen, setAuthScreen] = useState<'login' | 'register' | 'forgot' | 'reset'>('login');
