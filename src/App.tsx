@@ -1940,7 +1940,6 @@ function SidebarContent({ user, view, onNav, onLogout, occupancyPct = 0, revenue
               src="/Logo.png"
               alt="Nightplan"
               className="w-full h-full object-contain"
-              style={{ filter: 'drop-shadow(0 0 8px rgba(212,98,42,0.55))' }}
             />
           </div>
           <div className="flex flex-col justify-center">
