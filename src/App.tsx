@@ -168,6 +168,7 @@ export default function App() {
   const [showNewFloorPlanModal, setShowNewFloorPlanModal] = useState(false);
   const [editingFloorPlanMeta, setEditingFloorPlanMeta] = useState<{ venueId: string; fp: FloorPlan } | null>(null);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  const [editorVenueId, setEditorVenueId] = useState<string | null>(null);
 
   useEffect(() => {
     localStorage.setItem('nightplan_managed_users', JSON.stringify(managedUsers));
@@ -788,7 +789,7 @@ export default function App() {
               <SidebarContent
                 user={user}
                 view={view}
-                onNav={(v) => { setView(v as AppView); setSelectedVenue(null); setSelectedEvent(null); setEditingFloorPlan(null); setMobileSidebarOpen(false); }}
+                onNav={(v) => { setView(v as AppView); setSelectedVenue(null); setSelectedEvent(null); setEditingFloorPlan(null); setEditorVenueId(null); setMobileSidebarOpen(false); }}
                 onLogout={handleLogout}
                 occupancyPct={occupancyPct}
                 revenueEst={revenueEst}
@@ -802,7 +803,7 @@ export default function App() {
       {/* ── Desktop sidebar ── */}
       <aside className="hidden md:flex w-60 xl:w-64 border-r border-[#2e2e2e] bg-[#171717] flex-col shrink-0 sticky top-0 h-screen">
         <SidebarContent user={user} view={view}
-          onNav={(v) => { setView(v as AppView); setSelectedVenue(null); setSelectedEvent(null); setEditingFloorPlan(null); }}
+          onNav={(v) => { setView(v as AppView); setSelectedVenue(null); setSelectedEvent(null); setEditingFloorPlan(null); setEditorVenueId(null); }}
           onLogout={handleLogout}
           occupancyPct={occupancyPct}
           revenueEst={revenueEst}
@@ -871,7 +872,7 @@ export default function App() {
                     <h2 className="hv font-black text-4xl uppercase text-white">{selectedVenue.name}</h2>
                   </div>
                   <button
-                    onClick={() => setView('editor')}
+                    onClick={() => { setEditorVenueId(selectedVenue.id); setView('editor'); }}
                     className="flex items-center gap-2 border border-[#383838] text-[#888] px-4 py-2.5 text-[9px] hv font-black uppercase tracking-widest hover:border-accent hover:text-accent transition-all shrink-0 mt-1">
                     <Map size={12} /> Layout Tavoli
                   </button>
@@ -1003,68 +1004,85 @@ export default function App() {
                       }}
                     />
                   </div>
-                ) : (
-                  <div>
-                    <div className="flex items-start justify-between mb-8 gap-4">
-                      <PageTitle title="Venue Design" sub="Gestisci le piante dei tuoi locali" />
-                      <button
-                        onClick={() => setShowNewFloorPlanModal(true)}
-                        className="flex items-center gap-2 bg-accent text-black px-5 py-3 text-[9px] hv font-black uppercase tracking-widest hover:bg-white transition-colors shrink-0 mt-1">
-                        <Plus size={12} /> Nuova Pianta
-                      </button>
-                    </div>
-                    <div className="space-y-6">
-                      {venues.map(venue => (
-                        <div key={venue.id} className="border border-[#383838] bg-card">
-                          <div className="px-7 py-5 border-b border-[#2e2e2e]">
-                            <h3 className="hv font-black text-xl uppercase text-white">{venue.name}</h3>
-                            <p className="text-[9px] font-sans uppercase tracking-widest text-[#999] mt-0.5">{venue.address}</p>
-                          </div>
-                          {venue.floorPlans.length === 0 ? (
-                            <div className="px-7 py-8 text-center">
-                              <p className="text-[9px] font-sans uppercase tracking-[0.4em] text-[#666]">Nessuna pianta</p>
-                            </div>
-                          ) : (
-                            <div className="divide-y divide-[#2a2a2a]">
-                              {venue.floorPlans.map(fp => (
-                                <div key={fp.id} className="px-7 py-4 flex items-center justify-between group hover:bg-white/[0.01] transition-colors">
-                                  <div className="flex items-center gap-4">
-                                    <Map size={14} className="text-[#888] shrink-0" />
-                                    <div>
-                                      <p className="hv font-black text-sm uppercase text-white">{fp.name}</p>
-                                      <p className="text-[8px] font-sans text-[#999] mt-0.5">{fp.tables.length} tavoli</p>
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <div className="flex items-center gap-0.5 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                                      <button
-                                        onClick={() => setEditingFloorPlanMeta({ venueId: venue.id, fp })}
-                                        className="w-7 h-7 flex items-center justify-center text-[#999] hover:text-accent transition-colors">
-                                        <Pencil size={12} />
-                                      </button>
-                                      <button
-                                        onClick={() => setVenues(prev => prev.map(v =>
-                                          v.id === venue.id ? { ...v, floorPlans: v.floorPlans.filter(f => f.id !== fp.id) } : v
-                                        ))}
-                                        className="w-7 h-7 flex items-center justify-center text-[#999] hover:text-red-500 transition-colors">
-                                        <Trash2 size={12} />
-                                      </button>
-                                    </div>
-                                    <button
-                                      onClick={() => setEditingFloorPlan({ venueId: venue.id, fp })}
-                                      className="text-[9px] font-sans uppercase tracking-widest text-[#999] hover:text-accent transition-colors flex items-center gap-1.5">
-                                      Canvas <ChevronRight size={11} />
-                                    </button>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
+                ) : (() => {
+                  const filteredVenue = editorVenueId ? venues.find(v => v.id === editorVenueId) : null;
+                  const venuesToShow = filteredVenue ? [filteredVenue] : venues;
+                  const title = filteredVenue ? `Pianta — ${filteredVenue.name}` : 'Layout Tavoli';
+                  const sub = filteredVenue ? `Gestisci il layout di ${filteredVenue.name}` : 'Gestisci le piante di tutti i locali';
+                  return (
+                    <div>
+                      <div className="flex items-start justify-between mb-8 gap-4">
+                        <div>
+                          {filteredVenue && (
+                            <button
+                              onClick={() => { setEditorVenueId(null); setView('venue-events'); }}
+                              className="flex items-center gap-2 text-[#666] hover:text-accent transition-colors text-[10px] font-sans uppercase tracking-widest mb-4">
+                              <ArrowLeft size={11} /> Torna al Club
+                            </button>
                           )}
+                          <PageTitle title={title} sub={sub} />
                         </div>
-                      ))}
+                        <button
+                          onClick={() => setShowNewFloorPlanModal(true)}
+                          className="flex items-center gap-2 bg-accent text-black px-5 py-3 text-[9px] hv font-black uppercase tracking-widest hover:bg-white transition-colors shrink-0 mt-1">
+                          <Plus size={12} /> Nuova Pianta
+                        </button>
+                      </div>
+                      <div className="space-y-6">
+                        {venuesToShow.map(venue => (
+                          <div key={venue.id} className="border border-[#383838] bg-card">
+                            {!filteredVenue && (
+                              <div className="px-7 py-5 border-b border-[#2e2e2e]">
+                                <h3 className="hv font-black text-xl uppercase text-white">{venue.name}</h3>
+                                <p className="text-[9px] font-sans uppercase tracking-widest text-[#999] mt-0.5">{venue.address}</p>
+                              </div>
+                            )}
+                            {venue.floorPlans.length === 0 ? (
+                              <div className="px-7 py-8 text-center">
+                                <p className="text-[9px] font-sans uppercase tracking-[0.4em] text-[#666]">Nessuna pianta</p>
+                              </div>
+                            ) : (
+                              <div className="divide-y divide-[#2a2a2a]">
+                                {venue.floorPlans.map(fp => (
+                                  <div key={fp.id} className="px-7 py-4 flex items-center justify-between group hover:bg-white/[0.01] transition-colors">
+                                    <div className="flex items-center gap-4">
+                                      <Map size={14} className="text-[#888] shrink-0" />
+                                      <div>
+                                        <p className="hv font-black text-sm uppercase text-white">{fp.name}</p>
+                                        <p className="text-[8px] font-sans text-[#999] mt-0.5">{fp.tables.length} tavoli</p>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <div className="flex items-center gap-0.5 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                                        <button
+                                          onClick={() => setEditingFloorPlanMeta({ venueId: venue.id, fp })}
+                                          className="w-7 h-7 flex items-center justify-center text-[#999] hover:text-accent transition-colors">
+                                          <Pencil size={12} />
+                                        </button>
+                                        <button
+                                          onClick={() => setVenues(prev => prev.map(v =>
+                                            v.id === venue.id ? { ...v, floorPlans: v.floorPlans.filter(f => f.id !== fp.id) } : v
+                                          ))}
+                                          className="w-7 h-7 flex items-center justify-center text-[#999] hover:text-red-500 transition-colors">
+                                          <Trash2 size={12} />
+                                        </button>
+                                      </div>
+                                      <button
+                                        onClick={() => setEditingFloorPlan({ venueId: venue.id, fp })}
+                                        className="text-[9px] font-sans uppercase tracking-widest text-[#999] hover:text-accent transition-colors flex items-center gap-1.5">
+                                        Canvas <ChevronRight size={11} />
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
               </motion.div>
             )}
 
@@ -1423,8 +1441,11 @@ function SidebarContent({ user, view, onNav, onLogout, occupancyPct = 0, revenue
             </div>
             <NavSection label="Locali">
               <NavLink icon={<Building2 size={14}/>} label="I miei club"
-                active={view==='venues'||view==='venue-events'||view==='editor'}
+                active={view==='venues'||view==='venue-events'}
                 onClick={() => onNav('venues')} />
+              <NavLink icon={<Map size={14}/>} label="Layout Tavoli"
+                active={view==='editor'}
+                onClick={() => onNav('editor')} />
             </NavSection>
             <NavSection label="Operazioni">
               <NavLink icon={<BarChart3 size={14}/>} label="Prenotazioni"
