@@ -933,27 +933,7 @@ export default function App() {
                   {/* Tab: Pianta */}
                   {venueTab === 'layout' && (
                     <motion.div key="tab-layout" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
-                      {editingFloorPlan ? (
-                        <div className="flex flex-col h-full gap-5">
-                          <button onClick={() => setEditingFloorPlan(null)}
-                            className="flex items-center gap-2 text-[#666] hover:text-accent transition-colors text-[10px] font-sans uppercase tracking-widest self-start">
-                            <ArrowLeft size={11} /> Torna alla Pianta
-                          </button>
-                          <FloorPlanEditor
-                            key={editingFloorPlan.fp.id || 'new'}
-                            floorPlan={editingFloorPlan.fp}
-                            onSave={(savedFp) => {
-                              setVenues(prev => prev.map(v =>
-                                v.id === editingFloorPlan.venueId
-                                  ? { ...v, floorPlans: v.floorPlans.some(fp => fp.id === savedFp.id) ? v.floorPlans.map(fp => fp.id === savedFp.id ? savedFp : fp) : [...v.floorPlans, savedFp] }
-                                  : v
-                              ));
-                              setEditingFloorPlan(null);
-                            }}
-                          />
-                        </div>
-                      ) : (
-                        <div>
+                      <div>
                           <div className="flex justify-end mb-6">
                             <button onClick={() => setEditingFloorPlan({ venueId: selectedVenue.id, fp: { id: `fp_${Date.now()}`, name: '', canvasWidth: 800, canvasHeight: 600, staticAreas: [], tables: [] } })}
                               className="flex items-center gap-2 bg-accent text-black px-5 py-3 text-[9px] hv font-black uppercase tracking-widest hover:bg-white transition-colors">
@@ -998,7 +978,6 @@ export default function App() {
                           );
                           })()}
                         </div>
-                      )}
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -1071,32 +1050,7 @@ export default function App() {
             {/* Editor */}
             {view === 'editor' && (
               <motion.div key="editor" {...PAGE} className="h-full flex flex-col">
-                {editingFloorPlan ? (
-                  <div className="flex flex-col h-full gap-5">
-                    <button
-                      onClick={() => setEditingFloorPlan(null)}
-                      className="flex items-center gap-2 text-[#666] hover:text-accent transition-colors text-[10px] font-sans uppercase tracking-widest self-start">
-                      <ArrowLeft size={11} /> Torna alle Piante
-                    </button>
-                    <FloorPlanEditor
-                      key={editingFloorPlan.fp.id || 'new'}
-                      floorPlan={editingFloorPlan.fp}
-                      onSave={(savedFp) => {
-                        setVenues(prev => prev.map(v =>
-                          v.id === editingFloorPlan.venueId
-                            ? {
-                                ...v,
-                                floorPlans: v.floorPlans.some(fp => fp.id === savedFp.id)
-                                  ? v.floorPlans.map(fp => fp.id === savedFp.id ? savedFp : fp)
-                                  : [...v.floorPlans, savedFp],
-                              }
-                            : v
-                        ));
-                        setEditingFloorPlan(null);
-                      }}
-                    />
-                  </div>
-                ) : (() => {
+                {(() => {
                   const filteredVenue = editorVenueId ? venues.find(v => v.id === editorVenueId) : null;
                   const venuesToShow = filteredVenue ? [filteredVenue] : venues;
                   const title = filteredVenue ? `Pianta — ${filteredVenue.name}` : 'Layout Tavoli';
@@ -1386,6 +1340,27 @@ export default function App() {
             ));
             setEditingFloorPlanMeta(null);
           }}
+        />
+      )}
+
+      {editingFloorPlan && (
+        <FloorPlanEditor
+          key={editingFloorPlan.fp.id || 'new'}
+          floorPlan={editingFloorPlan.fp}
+          onSave={(savedFp) => {
+            setVenues(prev => prev.map(v =>
+              v.id === editingFloorPlan.venueId
+                ? {
+                    ...v,
+                    floorPlans: v.floorPlans.some(fp => fp.id === savedFp.id)
+                      ? v.floorPlans.map(fp => fp.id === savedFp.id ? savedFp : fp)
+                      : [...v.floorPlans, savedFp],
+                  }
+                : v
+            ));
+            setEditingFloorPlan(null);
+          }}
+          onClose={() => setEditingFloorPlan(null)}
         />
       )}
     </div>
