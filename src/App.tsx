@@ -1935,8 +1935,8 @@ function SidebarContent({ user, view, onNav, onLogout, occupancyPct = 0, revenue
       {/* Brand */}
       <div className="px-6 py-6 border-b border-[#2e2e2e] shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-accent flex items-center justify-center shrink-0 glow">
-            <span className="hv font-black text-black text-sm leading-none">N</span>
+          <div className="w-8 h-8 shrink-0 overflow-hidden">
+            <img src="/Logo.png" alt="Nightplan" className="w-full h-full object-contain" />
           </div>
           <div>
             <span className="hv font-black uppercase tracking-widest text-[11px] text-white block leading-tight">Nightplan</span>
