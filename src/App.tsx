@@ -1618,8 +1618,9 @@ function PRProfile({ user, onSave }: {
 }
 
 const SAVED_ACCOUNTS = [
-  { label: 'Admin', email: 'g.scanni7@gmail.com', password: '1234' },
-  { label: 'PR',    email: 'lucavisca@gmail.com', password: '1234' },
+  { label: 'Admin',        email: 'g.scanni7@gmail.com',      password: '1234' },
+  { label: 'PR',           email: 'lucavisca@gmail.com',      password: '1234' },
+  { label: 'Accoglienza',  email: 'accoglienza@nightplan.it', password: '1234' },
 ];
 
 /* ── PRManagementPage ────────────────────────────────────── */
