@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Calendar, Settings, BarChart3, LogOut, ChevronRight, ChevronDown,
   Plus, Download, Filter, Building2, X, ArrowLeft, Menu, Map, Pencil, Trash2,
-  UserCheck, Bell, Clock, TrendingUp, CheckCircle2, XCircle
+  UserCheck, Bell, Clock, TrendingUp, CheckCircle2, XCircle, Users, Eye, EyeOff
 } from 'lucide-react';
 import { MOCK_USERS, INITIAL_VENUES, INITIAL_EVENTS, INITIAL_RESERVATIONS, INITIAL_MANAGED_USERS } from './constants';
 import { UserProfile, Event, Reservation, Venue, FloorPlan, ManagedUser } from './types';
@@ -13,7 +13,7 @@ import { isFirebaseConfigured, signInWithGoogle } from './lib/firebase';
 import FloorPlanViewer from './components/floorplan/FloorPlanViewer';
 import FloorPlanEditor from './components/floorplan/FloorPlanEditor';
 
-type AppView = 'venues' | 'venue-events' | 'events' | 'active-events' | 'plan' | 'editor' | 'reservations' | 'approvals' | 'profile' | 'history';
+type AppView = 'venues' | 'venue-events' | 'events' | 'active-events' | 'plan' | 'editor' | 'reservations' | 'approvals' | 'profile' | 'history' | 'pr-management';
 
 const DISPOSABLE_DOMAINS = new Set([
   'mailinator.com','guerrillamail.com','guerrillamail.net','guerrillamail.org','guerrillamail.de',
@@ -171,6 +171,7 @@ export default function App() {
   const [editorVenueId, setEditorVenueId] = useState<string | null>(null);
   const [venueTab, setVenueTab] = useState<'events' | 'layout'>('events');
   const [editingReservation, setEditingReservation] = useState<Reservation | null>(null);
+  const [selectedPR, setSelectedPR] = useState<ManagedUser | null>(null);
 
   useEffect(() => {
     localStorage.setItem('nightplan_managed_users', JSON.stringify(managedUsers));
@@ -399,6 +400,7 @@ export default function App() {
     if (view === 'approvals')      return 'Approvazioni';
     if (view === 'profile')        return 'Il Mio Profilo';
     if (view === 'history')        return 'Il Mio Storico';
+    if (view === 'pr-management')  return selectedPR ? `${selectedPR.displayName} ${selectedPR.lastName}` : 'I Miei PR';
     return '';
   };
 
@@ -793,7 +795,7 @@ export default function App() {
               <SidebarContent
                 user={user}
                 view={view}
-                onNav={(v) => { setView(v as AppView); setSelectedVenue(null); setSelectedEvent(null); setEditingFloorPlan(null); setEditorVenueId(null); setMobileSidebarOpen(false); }}
+                onNav={(v) => { setView(v as AppView); setSelectedVenue(null); setSelectedEvent(null); setEditingFloorPlan(null); setEditorVenueId(null); setSelectedPR(null); setMobileSidebarOpen(false); }}
                 onLogout={handleLogout}
                 occupancyPct={occupancyPct}
                 revenueEst={revenueEst}
@@ -808,7 +810,7 @@ export default function App() {
       {/* ── Desktop sidebar ── */}
       <aside className="hidden md:flex w-60 xl:w-64 border-r border-[#2e2e2e] bg-[#171717] flex-col shrink-0 sticky top-0 h-screen">
         <SidebarContent user={user} view={view}
-          onNav={(v) => { setView(v as AppView); setSelectedVenue(null); setSelectedEvent(null); setEditingFloorPlan(null); setEditorVenueId(null); }}
+          onNav={(v) => { setView(v as AppView); setSelectedVenue(null); setSelectedEvent(null); setEditingFloorPlan(null); setEditorVenueId(null); setSelectedPR(null); }}
           onLogout={handleLogout}
           occupancyPct={occupancyPct}
           revenueEst={revenueEst}
@@ -1252,6 +1254,21 @@ export default function App() {
               </motion.div>
             )}
 
+            {/* PR Management — admin only */}
+            {view === 'pr-management' && user.role === 'admin' && (
+              <motion.div key="pr-management" {...PAGE}>
+                <PRManagementPage
+                  managedUsers={managedUsers}
+                  reservations={reservations}
+                  events={events}
+                  selectedPR={selectedPR}
+                  onSelectPR={setSelectedPR}
+                  onBack={() => setSelectedPR(null)}
+                  onUpdateStatus={(id, status) => setManagedUsers(prev => prev.map(u => u.id === id ? { ...u, status } : u))}
+                />
+              </motion.div>
+            )}
+
             {/* Profile — PR only */}
             {view === 'profile' && user.role === 'pr' && (
               <motion.div key="profile" {...PAGE}>
@@ -1535,6 +1552,228 @@ const SAVED_ACCOUNTS = [
   { label: 'PR',    email: 'lucavisca@gmail.com', password: '1234' },
 ];
 
+/* ── PRManagementPage ────────────────────────────────────── */
+function PRManagementPage({ managedUsers, reservations, events, selectedPR, onSelectPR, onBack, onUpdateStatus }: {
+  managedUsers: ManagedUser[];
+  reservations: Reservation[];
+  events: Event[];
+  selectedPR: ManagedUser | null;
+  onSelectPR: (pr: ManagedUser) => void;
+  onBack: () => void;
+  onUpdateStatus: (id: string, status: 'approved' | 'rejected') => void;
+}) {
+  const prUsers = managedUsers.filter(u => u.role === 'pr');
+
+  const prStats = (prId: string) => {
+    const res = reservations.filter(r => r.prId === prId);
+    const approved = res.filter(r => r.approvalStatus === 'approved').length;
+    const budget = res.reduce((s, r) => s + r.budget, 0);
+    const rate = res.length > 0 ? Math.round((approved / res.length) * 100) : 0;
+    const eventCount = new Set(res.map(r => r.eventId)).size;
+    return { total: res.length, budget, rate, eventCount };
+  };
+
+  const statusBadge = (s: string) => {
+    if (s === 'approved') return <span className="px-2 py-0.5 text-[9px] font-sans uppercase tracking-widest bg-green-500/10 text-green-400 border border-green-500/20">Attivo</span>;
+    if (s === 'rejected') return <span className="px-2 py-0.5 text-[9px] font-sans uppercase tracking-widest bg-red-500/10 text-red-400 border border-red-500/20">Rifiutato</span>;
+    return <span className="px-2 py-0.5 text-[9px] font-sans uppercase tracking-widest bg-[#1e1e1e] text-[#777] border border-[#2a2a2a]">In attesa</span>;
+  };
+
+  if (selectedPR) {
+    return <PRDetailView pr={selectedPR} reservations={reservations} events={events} onBack={onBack} onUpdateStatus={onUpdateStatus} statusBadge={statusBadge} />;
+  }
+
+  return (
+    <div>
+      <PageTitle title="I Miei PR" sub={`${prUsers.length} professionisti registrati`} />
+      {prUsers.length === 0 ? (
+        <EmptyState icon={<Users size={28}/>} label="Nessun PR registrato." />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {prUsers.map(pr => {
+            const stats = prStats(pr.id);
+            return (
+              <div key={pr.id} className="border border-[#2a2a2a] bg-card p-6 flex flex-col gap-5 hover:border-[#3a3a3a] transition-colors">
+                {/* Header */}
+                <div className="flex items-center gap-4">
+                  <div className="w-11 h-11 bg-[#1a1a1a] border border-[#2a2a2a] flex items-center justify-center shrink-0 overflow-hidden">
+                    {pr.profileImage
+                      ? <img src={pr.profileImage} alt="" className="w-full h-full object-cover" />
+                      : <span className="hv font-black text-accent text-sm">{pr.displayName.slice(0,2).toUpperCase()}</span>}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="hv font-black text-sm uppercase text-white truncate">{pr.displayName} {pr.lastName}</p>
+                    <p className="text-[10px] font-sans text-[#555] truncate mt-0.5">{pr.email}</p>
+                  </div>
+                  {statusBadge(pr.status)}
+                </div>
+
+                {/* Stats */}
+                <div className="grid grid-cols-3 gap-3 border-t border-[#1e1e1e] pt-5">
+                  <div>
+                    <p className="hv font-black text-xl text-white">{stats.total}</p>
+                    <p className="text-[8px] font-sans uppercase tracking-[0.3em] text-[#555] mt-1">Tavoli</p>
+                  </div>
+                  <div>
+                    <p className="hv font-black text-xl text-white">€{stats.budget >= 1000 ? `${(stats.budget/1000).toFixed(1)}K` : stats.budget}</p>
+                    <p className="text-[8px] font-sans uppercase tracking-[0.3em] text-[#555] mt-1">Budget</p>
+                  </div>
+                  <div>
+                    <p className="hv font-black text-xl text-white">{stats.rate}<span className="text-sm text-[#555]">%</span></p>
+                    <p className="text-[8px] font-sans uppercase tracking-[0.3em] text-[#555] mt-1">Approv.</p>
+                  </div>
+                </div>
+
+                {/* CTA */}
+                <button onClick={() => onSelectPR(pr)}
+                  className="w-full py-2.5 text-[9px] hv font-black uppercase tracking-[0.2em] border border-[#2a2a2a] text-[#666] hover:border-accent/40 hover:text-accent transition-colors flex items-center justify-center gap-2">
+                  Apri Scheda <ChevronRight size={11} />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── PRDetailView ────────────────────────────────────────── */
+function PRDetailView({ pr, reservations, events, onBack, onUpdateStatus, statusBadge }: {
+  pr: ManagedUser;
+  reservations: Reservation[];
+  events: Event[];
+  onBack: () => void;
+  onUpdateStatus: (id: string, status: 'approved' | 'rejected') => void;
+  statusBadge: (s: string) => React.ReactNode;
+}) {
+  const [showPwd, setShowPwd] = useState(false);
+  const myRes = reservations.filter(r => r.prId === pr.id);
+  const myEventIds = [...new Set(myRes.map(r => r.eventId))];
+  const approved = myRes.filter(r => r.approvalStatus === 'approved').length;
+  const totalBudget = myRes.reduce((s, r) => s + r.budget, 0);
+  const approvalRate = myRes.length > 0 ? Math.round((approved / myRes.length) * 100) : 0;
+
+  return (
+    <div>
+      {/* Back */}
+      <button onClick={onBack}
+        className="flex items-center gap-2 text-[#555] hover:text-accent transition-colors text-[10px] font-sans uppercase tracking-widest mb-8">
+        <ArrowLeft size={11} /> Tutti i PR
+      </button>
+
+      {/* Header */}
+      <div className="flex items-center gap-5 mb-8">
+        <div className="w-16 h-16 bg-[#1a1a1a] border border-[#2a2a2a] flex items-center justify-center shrink-0 overflow-hidden">
+          {pr.profileImage
+            ? <img src={pr.profileImage} alt="" className="w-full h-full object-cover" />
+            : <span className="hv font-black text-accent text-xl">{pr.displayName.slice(0,2).toUpperCase()}</span>}
+        </div>
+        <div>
+          <h2 className="hv font-black text-3xl uppercase text-white tracking-tight">{pr.displayName} {pr.lastName}</h2>
+          <div className="flex items-center gap-3 mt-2">
+            {statusBadge(pr.status)}
+            <span className="text-[9px] font-sans text-[#444] uppercase tracking-widest">dal {pr.createdAt?.slice(0,10) ?? '—'}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left: info + actions */}
+        <div className="space-y-4">
+          {/* Info card */}
+          <div className="border border-[#2a2a2a] bg-card p-5 space-y-4">
+            <p className="text-[9px] font-sans uppercase tracking-[0.3em] text-[#555] mb-1">Informazioni</p>
+            {[
+              { label: 'Email', value: pr.email },
+              { label: 'Telefono', value: pr.phone || '—' },
+            ].map(({ label, value }) => (
+              <div key={label}>
+                <p className="text-[9px] font-sans uppercase tracking-[0.2em] text-[#555]">{label}</p>
+                <p className="text-sm text-white font-sans mt-1">{value}</p>
+              </div>
+            ))}
+            <div>
+              <p className="text-[9px] font-sans uppercase tracking-[0.2em] text-[#555]">Password</p>
+              <div className="flex items-center gap-2 mt-1">
+                <p className="text-sm text-white font-sans font-mono">{showPwd ? pr.password : '••••••••'}</p>
+                <button onClick={() => setShowPwd(v => !v)}
+                  className="text-[#444] hover:text-accent transition-colors">
+                  {showPwd ? <EyeOff size={13}/> : <Eye size={13}/>}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Actions */}
+          {pr.status !== 'approved' && (
+            <button onClick={() => onUpdateStatus(pr.id, 'approved')}
+              className="w-full py-3 text-[9px] hv font-black uppercase tracking-[0.2em] bg-green-500/10 text-green-400 border border-green-500/20 hover:bg-green-500/20 transition-colors">
+              Approva Account
+            </button>
+          )}
+          {pr.status !== 'rejected' && (
+            <button onClick={() => onUpdateStatus(pr.id, 'rejected')}
+              className="w-full py-3 text-[9px] hv font-black uppercase tracking-[0.2em] bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-colors">
+              Disabilita Account
+            </button>
+          )}
+        </div>
+
+        {/* Right: stats + history */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* KPIs */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { label: 'Tavoli', value: myRes.length },
+              { label: 'Budget', value: `€${totalBudget >= 1000 ? `${(totalBudget/1000).toFixed(1)}K` : totalBudget}` },
+              { label: 'Serate', value: myEventIds.length },
+              { label: 'Approv.', value: `${approvalRate}%` },
+            ].map(({ label, value }) => (
+              <div key={label} className="border border-[#2a2a2a] bg-card px-4 py-4">
+                <p className="hv font-black text-2xl text-white">{value}</p>
+                <p className="text-[9px] font-sans uppercase tracking-[0.3em] text-[#555] mt-2">{label}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Barra approvazione */}
+          {myRes.length > 0 && (
+            <div className="border border-[#2a2a2a] bg-card px-5 py-4">
+              <div className="flex justify-between mb-2">
+                <span className="text-[9px] font-sans uppercase tracking-[0.3em] text-[#555]">Tasso approvazione</span>
+                <span className="text-[9px] hv font-black text-accent">{approvalRate}%</span>
+              </div>
+              <div className="h-1 bg-[#1e1e1e] rounded-full overflow-hidden">
+                <motion.div className="h-full bg-accent" initial={{ width: 0 }} animate={{ width: `${approvalRate}%` }} transition={{ duration: 1, ease: 'easeOut' }} />
+              </div>
+            </div>
+          )}
+
+          {/* Event history */}
+          {myEventIds.length === 0 ? (
+            <EmptyState icon={<Clock size={24}/>} label="Nessuna prenotazione ancora." />
+          ) : (
+            <div className="space-y-3">
+              {myEventIds.map(eventId => {
+                const event = events.find(e => e.id === eventId);
+                if (!event) return null;
+                const eventRes = myRes.filter(r => r.eventId === eventId);
+                const eventApproved = eventRes.filter(r => r.approvalStatus === 'approved').length;
+                const eventBudget = eventRes.reduce((s, r) => s + r.budget, 0);
+                return (
+                  <HistoryEventRow key={eventId} event={event} venueName="—"
+                    reservations={eventRes} approvedCount={eventApproved} totalBudget={eventBudget} />
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── ReservationQuickEditModal ───────────────────────────── */
 function ReservationQuickEditModal({ reservation, onClose, onSave }: {
   reservation: Reservation;
@@ -1748,6 +1987,12 @@ function SidebarContent({ user, view, onNav, onLogout, occupancyPct = 0, revenue
                 active={view==='approvals'}
                 onClick={() => onNav('approvals')}
                 badge={pendingCount} />
+            </div>
+            <div className="mx-3 my-4 h-px bg-[#242424]" />
+            <div className="space-y-0.5">
+              <NavLink icon={<Users size={14}/>} label="I Miei PR"
+                active={view==='pr-management'}
+                onClick={() => onNav('pr-management')} />
             </div>
           </>
         ) : (
