@@ -865,9 +865,16 @@ export default function App() {
             {/* Venue events */}
             {view === 'venue-events' && selectedVenue && (
               <motion.div key="venue-events" {...PAGE}>
-                <div className="mb-8">
-                  <p className="text-[9px] font-sans uppercase tracking-[0.4em] text-[#999] mb-1">Venue</p>
-                  <h2 className="hv font-black text-4xl uppercase text-white">{selectedVenue.name}</h2>
+                <div className="mb-8 flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-[9px] font-sans uppercase tracking-[0.4em] text-[#999] mb-1">Club</p>
+                    <h2 className="hv font-black text-4xl uppercase text-white">{selectedVenue.name}</h2>
+                  </div>
+                  <button
+                    onClick={() => setView('editor')}
+                    className="flex items-center gap-2 border border-[#383838] text-[#888] px-4 py-2.5 text-[9px] hv font-black uppercase tracking-widest hover:border-accent hover:text-accent transition-all shrink-0 mt-1">
+                    <Map size={12} /> Layout Tavoli
+                  </button>
                 </div>
                 {venueEvents.length === 0 ? (
                   <EmptyState icon={<Calendar size={28} />} label="Nessun evento ancora.">
@@ -1409,16 +1416,15 @@ function SidebarContent({ user, view, onNav, onLogout, occupancyPct = 0, revenue
       <nav className="flex-1 px-3 py-5 overflow-y-auto">
         {user.role === 'admin' ? (
           <>
-            <NavSection label="Gestione">
+            <div className="space-y-0.5 mb-6">
               <NavLink icon={<Calendar size={14}/>} label="Prossimi eventi"
                 active={view==='active-events'||view==='plan'}
                 onClick={() => onNav('active-events')} />
-              <NavLink icon={<Building2 size={14}/>} label="Location"
-                active={view==='venues'||view==='venue-events'}
+            </div>
+            <NavSection label="Locali">
+              <NavLink icon={<Building2 size={14}/>} label="I miei club"
+                active={view==='venues'||view==='venue-events'||view==='editor'}
                 onClick={() => onNav('venues')} />
-              <NavLink icon={<Map size={14}/>} label="Layout Tavoli"
-                active={view==='editor'}
-                onClick={() => onNav('editor')} />
             </NavSection>
             <NavSection label="Operazioni">
               <NavLink icon={<BarChart3 size={14}/>} label="Prenotazioni"
