@@ -434,141 +434,151 @@ export default function App() {
         <motion.div
           initial={{ opacity: 0 }} animate={{ opacity: 1 }}
           transition={{ duration: 0.4, delay: 0.1 }}
-          className="flex-1 flex flex-col justify-center items-center px-8 py-12 lg:px-16 bg-[#0e0e0e] overflow-y-auto"
+          className="flex-1 flex flex-col justify-center items-center p-8 lg:p-16 bg-[#1A1A1A]"
         >
           {/* Mobile logo */}
-          <div className="lg:hidden mb-12 text-center">
+          <div className="lg:hidden mb-14 text-center">
             <h1 className="hv font-black text-5xl uppercase tracking-tight text-white">NIGHTPLAN</h1>
-            <p className="text-[#555] text-[10px] font-sans uppercase tracking-[0.4em] mt-2">Management Suite</p>
+            <p className="text-[#999] text-[10px] font-sans uppercase tracking-[0.4em] mt-2">Management Suite</p>
           </div>
 
-          <div className="w-full max-w-[360px]">
+          <div className="w-full max-w-xs">
             <AnimatePresence mode="wait">
               {authScreen === 'login' ? (
-                <motion.div key="login" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
+                <motion.div key="login" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }}>
 
                   {/* Header */}
-                  <div className="mb-9">
-                    <h2 className="hv font-black text-[26px] uppercase text-white tracking-tight">Accedi</h2>
-                    <p className="text-[#4a4a4a] text-[11px] font-sans uppercase tracking-[0.2em] mt-2">Bentornato nella piattaforma</p>
+                  <div className="mb-8">
+                    <h2 className="hv font-black text-2xl uppercase text-white tracking-tight">Accedi</h2>
+                    <p className="text-[#555] text-[9px] font-sans uppercase tracking-[0.25em] mt-1.5">Bentornato nella piattaforma</p>
                   </div>
 
-                  {/* Google */}
-                  <button type="button" onClick={handleGoogleSignIn}
-                    className="group w-full flex items-center justify-center gap-3 py-[14px] bg-[#161616] border border-[#2c2c2c] hover:border-[#484848] hover:bg-[#1c1c1c] transition-all duration-200 mb-7">
+                  {/* Google — metodo principale */}
+                  <button
+                    type="button"
+                    onClick={handleGoogleSignIn}
+                    className="group w-full flex items-center justify-center gap-3 py-[15px] bg-[#1e1e1e] border border-[#333] hover:border-[#4a4a4a] hover:bg-[#242424] transition-all duration-200 mb-6"
+                  >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                       <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                       <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
                       <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
                       <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
                     </svg>
-                    <span className="text-[11px] font-sans font-medium tracking-[0.12em] text-[#bbb] group-hover:text-white transition-colors">
-                      Continua con Google
+                    <span className="text-[10px] hv font-black uppercase tracking-[0.18em] text-[#aaa] group-hover:text-white transition-colors">
+                      Accedi con Google
                     </span>
                   </button>
 
                   {/* Divider */}
-                  <div className="flex items-center gap-4 mb-7">
-                    <div className="flex-1 h-px bg-[#1e1e1e]" />
-                    <span className="text-[10px] font-sans tracking-[0.25em] text-[#333] uppercase">oppure</span>
-                    <div className="flex-1 h-px bg-[#1e1e1e]" />
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="flex-1 h-px bg-[#272727]" />
+                    <span className="text-[8px] font-sans uppercase tracking-[0.3em] text-[#444]">oppure con email</span>
+                    <div className="flex-1 h-px bg-[#272727]" />
                   </div>
 
-                  {/* Form */}
-                  <form onSubmit={handleLogin} className="space-y-5">
-                    <div>
-                      <label className="block text-[11px] font-sans font-medium uppercase tracking-[0.15em] text-[#666] mb-2">Email</label>
+                  {/* Form email/password */}
+                  <form onSubmit={handleLogin} className="space-y-3">
+                    <div className="space-y-1">
+                      <label className="text-[9px] hv font-black uppercase tracking-[0.2em] text-[#555]">Email</label>
                       <input
-                        type="email" list="nightplan-accounts" autoComplete="off" required
+                        type="email"
+                        list="nightplan-accounts"
+                        autoComplete="off"
+                        required
                         value={loginEmail}
                         onChange={e => {
-                          setLoginEmail(e.target.value); setLoginError('');
+                          setLoginEmail(e.target.value);
+                          setLoginError('');
                           const match = SAVED_ACCOUNTS.find(a => a.email === e.target.value);
                           if (match) setLoginPassword(match.password);
                         }}
                         placeholder="tua@email.it"
-                        className="w-full bg-[#0a0a0a] border border-[#222] px-4 py-[14px] text-[15px] text-white placeholder-[#2a2a2a] outline-none focus:border-accent/50 focus:bg-[#0d0b09] transition-all duration-200 font-sans"
+                        className="w-full bg-[#141414] border border-[#2e2e2e] px-5 py-3.5 text-sm text-white placeholder-[#383838] outline-none focus:border-accent/40 transition-colors font-sans"
                       />
                       <datalist id="nightplan-accounts">
                         {SAVED_ACCOUNTS.map(a => <option key={a.email} value={a.email}>{a.label}</option>)}
                       </datalist>
                     </div>
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="text-[11px] font-sans font-medium uppercase tracking-[0.15em] text-[#666]">Password</label>
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[9px] hv font-black uppercase tracking-[0.2em] text-[#555]">Password</label>
                         <button type="button"
                           onClick={() => { setAuthScreen('forgot'); setForgotError(''); setForgotSent(false); setForgotDevLink(''); }}
-                          className="text-[10px] font-sans text-[#444] hover:text-accent transition-colors tracking-wide">
+                          className="text-[8px] font-sans text-[#444] hover:text-accent transition-colors uppercase tracking-widest">
                           Dimenticata?
                         </button>
                       </div>
                       <input type="password" autoComplete="current-password" required value={loginPassword}
                         onChange={e => { setLoginPassword(e.target.value); setLoginError(''); }}
                         placeholder="••••••••"
-                        className="w-full bg-[#0a0a0a] border border-[#222] px-4 py-[14px] text-[15px] text-white placeholder-[#2a2a2a] outline-none focus:border-accent/50 focus:bg-[#0d0b09] transition-all duration-200 font-sans" />
+                        className="w-full bg-[#141414] border border-[#2e2e2e] px-5 py-3.5 text-sm text-white placeholder-[#383838] outline-none focus:border-accent/40 transition-colors font-sans" />
                     </div>
-                    {loginError && <p className="text-red-400 text-[11px] font-sans">{loginError}</p>}
-                    <motion.button type="submit" whileTap={{ scale: 0.98 }}
-                      className="w-full bg-accent text-black py-[15px] text-[11px] hv font-black uppercase tracking-[0.25em] hover:bg-white transition-all duration-200 hover:shadow-[0_0_32px_rgba(212,98,42,0.3)] mt-1">
-                      Accedi
+                    {loginError && <p className="text-red-500/80 text-[10px] font-sans uppercase tracking-widest pt-1">{loginError}</p>}
+                    <motion.button type="submit" whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
+                      className="group w-full bg-accent text-black py-[15px] text-[10px] hv font-black uppercase tracking-[0.3em] flex items-center justify-between px-6 hover:bg-white transition-all duration-200 mt-1 hover:shadow-[0_0_24px_rgba(212,98,42,0.30)] glow-sm">
+                      <span>Accedi</span>
+                      <ChevronRight size={13} className="group-hover:translate-x-1 transition-transform" />
                     </motion.button>
                   </form>
 
-                  <p className="text-center text-[11px] font-sans text-[#383838] mt-8">
+                  {/* Registrazione */}
+                  <p className="text-center text-[9px] font-sans text-[#444] uppercase tracking-widest mt-8">
                     Sei un PR?{' '}
                     <button onClick={() => { setAuthScreen('register'); setRegError(''); setRegDone(false); }}
-                      className="text-[#666] hover:text-accent transition-colors underline underline-offset-2">
+                      className="text-[#777] hover:text-accent transition-colors underline underline-offset-2">
                       Registrati
                     </button>
                   </p>
                 </motion.div>
               ) : authScreen === 'forgot' ? (
-                <motion.div key="forgot" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
+                <motion.div key="forgot" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }}>
                   {forgotSent ? (
                     <div className="text-center py-4">
                       <div className="w-14 h-14 bg-accent/10 border border-accent/20 flex items-center justify-center mx-auto mb-6">
                         <UserCheck size={24} className="text-accent" />
                       </div>
                       <h2 className="hv font-black text-xl uppercase text-white mb-3">Email Inviata</h2>
-                      <p className="text-[#666] text-[12px] font-sans leading-relaxed">
+                      <p className="text-[#999] text-[10px] font-sans uppercase tracking-widest leading-loose">
                         Controlla la tua casella di posta<br />e clicca il link per reimpostare<br />la password.
                       </p>
                       {forgotDevLink && (
-                        <div className="mt-6 p-4 bg-[#0a0a0a] border border-[#252525] text-left">
-                          <p className="text-[10px] font-sans uppercase tracking-widest text-[#555] mb-2">Link di reset (dev mode)</p>
-                          <a href={forgotDevLink} className="text-accent text-[11px] font-mono break-all hover:underline">
+                        <div className="mt-6 p-4 bg-[#141414] border border-[#383838] text-left">
+                          <p className="text-[8px] font-sans uppercase tracking-widest text-[#777] mb-2">Link di reset (dev mode)</p>
+                          <a href={forgotDevLink} className="text-accent text-[10px] font-mono break-all hover:underline">
                             Clicca qui per reimpostare
                           </a>
                         </div>
                       )}
                       <button onClick={() => { setAuthScreen('login'); setForgotSent(false); setForgotEmail(''); }}
-                        className="mt-8 w-full py-[14px] text-[11px] hv font-black uppercase tracking-[0.2em] border border-[#2a2a2a] text-[#666] hover:border-accent/40 hover:text-accent transition-colors">
+                        className="mt-8 w-full py-3.5 text-[9px] hv font-black uppercase tracking-[0.2em] border border-[#383838] text-[#888] hover:border-accent/40 hover:text-accent transition-colors">
                         Torna al Login
                       </button>
                     </div>
                   ) : (
                     <>
-                      <div className="mb-9">
-                        <h2 className="hv font-black text-[26px] uppercase text-white">Password Dimenticata</h2>
-                        <p className="text-[#4a4a4a] text-[11px] font-sans uppercase tracking-[0.2em] mt-2">Inserisci la tua email</p>
+                      <div className="mb-10">
+                        <h2 className="hv font-black text-2xl uppercase text-white">Password Dimenticata</h2>
+                        <p className="text-[#999] text-[10px] font-sans uppercase tracking-widest mt-2">Inserisci la tua email</p>
                       </div>
-                      <form onSubmit={handleForgotPassword} className="space-y-5">
-                        <div>
-                          <label className="block text-[11px] font-sans font-medium uppercase tracking-[0.15em] text-[#666] mb-2">Email</label>
+                      <form onSubmit={handleForgotPassword} className="space-y-3">
+                        <div className="space-y-1">
+                          <label className="text-[9px] hv font-black uppercase tracking-[0.2em] text-[#666]">Email</label>
                           <input type="email" required value={forgotEmail}
                             onChange={e => { setForgotEmail(e.target.value); setForgotError(''); }}
                             placeholder="tua@email.it"
-                            className="w-full bg-[#0a0a0a] border border-[#222] px-4 py-[14px] text-[15px] text-white placeholder-[#2a2a2a] outline-none focus:border-accent/50 focus:bg-[#0d0b09] transition-all duration-200 font-sans" />
+                            className="w-full bg-[#141414] border border-[#383838] px-5 py-4 text-sm text-white placeholder-[#444] outline-none focus:border-accent/40 transition-colors font-sans" />
                         </div>
-                        {forgotError && <p className="text-red-400 text-[11px] font-sans">{forgotError}</p>}
-                        <motion.button type="submit" whileTap={{ scale: 0.98 }}
-                          className="w-full bg-accent text-black py-[15px] text-[11px] hv font-black uppercase tracking-[0.25em] hover:bg-white transition-all duration-200 hover:shadow-[0_0_32px_rgba(212,98,42,0.3)]">
-                          Invia Link
+                        {forgotError && <p className="text-red-500/80 text-[10px] font-sans uppercase tracking-widest pt-1">{forgotError}</p>}
+                        <motion.button type="submit" whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
+                          className="group w-full bg-accent text-black py-[18px] text-[10px] hv font-black uppercase tracking-[0.3em] flex items-center justify-between px-6 hover:bg-white transition-all duration-200 mt-2 hover:shadow-[0_0_24px_rgba(212,98,42,0.40)] glow-sm">
+                          <span>Invia Link</span>
+                          <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
                         </motion.button>
                       </form>
-                      <div className="mt-8 pt-6 border-t border-[#1a1a1a]">
+                      <div className="mt-8 pt-6 border-t border-[#2e2e2e]">
                         <button onClick={() => setAuthScreen('login')}
-                          className="w-full text-[11px] font-sans text-[#444] hover:text-[#888] transition-colors py-2">
+                          className="w-full text-[9px] hv font-black uppercase tracking-[0.2em] text-[#666] hover:text-[#999] transition-colors py-2">
                           ← Torna al Login
                         </button>
                       </div>
@@ -576,155 +586,169 @@ export default function App() {
                   )}
                 </motion.div>
               ) : authScreen === 'reset' ? (
-                <motion.div key="reset" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
+                <motion.div key="reset" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }}>
                   {resetDone ? (
                     <div className="text-center py-4">
                       <div className="w-14 h-14 bg-accent/10 border border-accent/20 flex items-center justify-center mx-auto mb-6">
                         <UserCheck size={24} className="text-accent" />
                       </div>
                       <h2 className="hv font-black text-xl uppercase text-white mb-3">Password Aggiornata</h2>
-                      <p className="text-[#666] text-[12px] font-sans leading-relaxed">
+                      <p className="text-[#999] text-[10px] font-sans uppercase tracking-widest leading-loose">
                         La tua password è stata<br />reimpostata con successo.
                       </p>
                       <button onClick={() => { setAuthScreen('login'); setResetDone(false); setNewPassword(''); }}
-                        className="mt-8 w-full py-[14px] text-[11px] hv font-black uppercase tracking-[0.2em] bg-accent text-black hover:bg-white transition-colors">
+                        className="mt-8 w-full py-3.5 text-[9px] hv font-black uppercase tracking-[0.2em] bg-accent text-black hover:bg-white transition-colors">
                         Accedi ora
                       </button>
                     </div>
                   ) : (
                     <>
-                      <div className="mb-9">
-                        <h2 className="hv font-black text-[26px] uppercase text-white">Nuova Password</h2>
-                        <p className="text-[#4a4a4a] text-[11px] font-sans uppercase tracking-[0.2em] mt-2">{resetEmailState}</p>
+                      <div className="mb-10">
+                        <h2 className="hv font-black text-2xl uppercase text-white">Nuova Password</h2>
+                        <p className="text-[#999] text-[10px] font-sans uppercase tracking-widest mt-2">{resetEmailState}</p>
                       </div>
-                      <form onSubmit={handleResetPassword} className="space-y-5">
-                        <div>
-                          <label className="block text-[11px] font-sans font-medium uppercase tracking-[0.15em] text-[#666] mb-2">Nuova Password</label>
+                      <form onSubmit={handleResetPassword} className="space-y-3">
+                        <div className="space-y-1">
+                          <label className="text-[9px] hv font-black uppercase tracking-[0.2em] text-[#666]">Nuova Password</label>
                           <input type="password" required minLength={4} value={newPassword}
                             onChange={e => { setNewPassword(e.target.value); setResetError(''); }}
                             placeholder="••••••••"
-                            className="w-full bg-[#0a0a0a] border border-[#222] px-4 py-[14px] text-[15px] text-white placeholder-[#2a2a2a] outline-none focus:border-accent/50 focus:bg-[#0d0b09] transition-all duration-200 font-sans" />
+                            className="w-full bg-[#141414] border border-[#383838] px-5 py-4 text-sm text-white placeholder-[#444] outline-none focus:border-accent/40 transition-colors font-sans" />
                         </div>
-                        {resetError && <p className="text-red-400 text-[11px] font-sans">{resetError}</p>}
-                        <motion.button type="submit" whileTap={{ scale: 0.98 }}
-                          className="w-full bg-accent text-black py-[15px] text-[11px] hv font-black uppercase tracking-[0.25em] hover:bg-white transition-all duration-200 hover:shadow-[0_0_32px_rgba(212,98,42,0.3)]">
-                          Reimposta Password
+                        {resetError && <p className="text-red-500/80 text-[10px] font-sans uppercase tracking-widest pt-1">{resetError}</p>}
+                        <motion.button type="submit" whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
+                          className="group w-full bg-accent text-black py-[18px] text-[10px] hv font-black uppercase tracking-[0.3em] flex items-center justify-between px-6 hover:bg-white transition-all duration-200 mt-2 hover:shadow-[0_0_24px_rgba(212,98,42,0.40)] glow-sm">
+                          <span>Reimposta Password</span>
+                          <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
                         </motion.button>
                       </form>
                     </>
                   )}
                 </motion.div>
               ) : regDone ? (
-                <motion.div key="done" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}
+                <motion.div key="done" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18 }}
                   className="text-center py-8">
                   <div className="w-14 h-14 bg-accent/10 border border-accent/20 flex items-center justify-center mx-auto mb-6">
                     <UserCheck size={24} className="text-accent" />
                   </div>
                   <h2 className="hv font-black text-xl uppercase text-white mb-3">Richiesta Inviata</h2>
-                  <p className="text-[#666] text-[12px] font-sans leading-relaxed">
+                  <p className="text-[#999] text-[10px] font-sans uppercase tracking-widest leading-loose">
                     Il tuo account è in attesa<br />di approvazione admin.
                   </p>
                   <button onClick={() => { setAuthScreen('login'); setRegDone(false); setRegName(''); setRegEmail(''); setRegPassword(''); }}
-                    className="mt-8 w-full py-[14px] text-[11px] hv font-black uppercase tracking-[0.2em] border border-[#2a2a2a] text-[#666] hover:border-accent/40 hover:text-accent transition-colors">
+                    className="mt-8 w-full py-3.5 text-[9px] hv font-black uppercase tracking-[0.2em] border border-[#383838] text-[#888] hover:border-accent/40 hover:text-accent transition-colors">
                     Torna al Login
                   </button>
                 </motion.div>
               ) : (
-                <motion.div key="register" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.2 }}>
+                <motion.div key="register" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }}>
                   {/* Header */}
-                  <div className="mb-9">
-                    <h2 className="hv font-black text-[26px] uppercase text-white tracking-tight">Registrati</h2>
-                    <p className="text-[#4a4a4a] text-[11px] font-sans uppercase tracking-[0.2em] mt-2">Crea il tuo account PR</p>
+                  <div className="mb-8">
+                    <h2 className="hv font-black text-2xl uppercase text-white tracking-tight">Registrati</h2>
+                    <p className="text-[#555] text-[9px] font-sans uppercase tracking-[0.25em] mt-1.5">Crea il tuo account PR</p>
                   </div>
 
-                  {/* Google */}
-                  <button type="button" onClick={handleGoogleSignIn}
-                    className="group w-full flex items-center justify-center gap-3 py-[14px] bg-[#161616] border border-[#2c2c2c] hover:border-[#484848] hover:bg-[#1c1c1c] transition-all duration-200 mb-7">
+                  {/* Google — metodo rapido */}
+                  <button
+                    type="button"
+                    onClick={handleGoogleSignIn}
+                    className="group w-full flex items-center justify-center gap-3 py-[15px] bg-[#1e1e1e] border border-[#333] hover:border-[#4a4a4a] hover:bg-[#242424] transition-all duration-200 mb-6"
+                  >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                       <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                       <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
                       <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"/>
                       <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
                     </svg>
-                    <span className="text-[11px] font-sans font-medium tracking-[0.12em] text-[#bbb] group-hover:text-white transition-colors">
-                      Continua con Google
+                    <span className="text-[10px] hv font-black uppercase tracking-[0.18em] text-[#aaa] group-hover:text-white transition-colors">
+                      Registrati con Google
                     </span>
                   </button>
 
                   {/* Divider */}
-                  <div className="flex items-center gap-4 mb-7">
-                    <div className="flex-1 h-px bg-[#1e1e1e]" />
-                    <span className="text-[10px] font-sans tracking-[0.25em] text-[#333] uppercase">oppure</span>
-                    <div className="flex-1 h-px bg-[#1e1e1e]" />
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="flex-1 h-px bg-[#272727]" />
+                    <span className="text-[8px] font-sans uppercase tracking-[0.3em] text-[#444]">oppure manualmente</span>
+                    <div className="flex-1 h-px bg-[#272727]" />
                   </div>
 
-                  <form onSubmit={handleRegister} className="space-y-5">
+                  <form onSubmit={handleRegister} className="space-y-3">
                     <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-[11px] font-sans font-medium uppercase tracking-[0.15em] text-[#666] mb-2">Nome</label>
+                      <div className="space-y-1">
+                        <label className="text-[9px] hv font-black uppercase tracking-[0.2em] text-[#666]">Nome</label>
                         <input required value={regName} onChange={e => { setRegName(e.target.value); setRegError(''); }}
                           placeholder="Mario"
-                          className="w-full bg-[#0a0a0a] border border-[#222] px-4 py-[14px] text-[15px] text-white placeholder-[#2a2a2a] outline-none focus:border-accent/50 focus:bg-[#0d0b09] transition-all duration-200 font-sans" />
+                          className="w-full bg-[#141414] border border-[#383838] px-4 py-4 text-sm text-white placeholder-[#444] outline-none focus:border-accent/40 transition-colors font-sans" />
                       </div>
-                      <div>
-                        <label className="block text-[11px] font-sans font-medium uppercase tracking-[0.15em] text-[#666] mb-2">Cognome</label>
+                      <div className="space-y-1">
+                        <label className="text-[9px] hv font-black uppercase tracking-[0.2em] text-[#666]">Cognome</label>
                         <input required value={regLastName} onChange={e => { setRegLastName(e.target.value); setRegError(''); }}
                           placeholder="Rossi"
-                          className="w-full bg-[#0a0a0a] border border-[#222] px-4 py-[14px] text-[15px] text-white placeholder-[#2a2a2a] outline-none focus:border-accent/50 focus:bg-[#0d0b09] transition-all duration-200 font-sans" />
+                          className="w-full bg-[#141414] border border-[#383838] px-4 py-4 text-sm text-white placeholder-[#444] outline-none focus:border-accent/40 transition-colors font-sans" />
                       </div>
                     </div>
-                    <div>
-                      <label className="block text-[11px] font-sans font-medium uppercase tracking-[0.15em] text-[#666] mb-2">Email</label>
+                    <div className="space-y-1">
+                      <label className="text-[9px] hv font-black uppercase tracking-[0.2em] text-[#666]">Email</label>
                       <input
                         type="text" inputMode="email" autoComplete="email" required value={regEmail}
                         onChange={e => {
-                          const val = e.target.value; setRegEmail(val); setRegError('');
+                          const val = e.target.value;
+                          setRegEmail(val);
+                          setRegError('');
                           const [, domainPart] = val.split('@');
-                          if (domainPart && domainPart.includes('.')) setRegEmailError(validateEmail(val));
-                          else setRegEmailError('');
+                          if (domainPart && domainPart.includes('.'))
+                            setRegEmailError(validateEmail(val));
+                          else
+                            setRegEmailError('');
                         }}
                         onBlur={() => { if (regEmail) setRegEmailError(validateEmail(regEmail)); }}
                         placeholder="tua@email.it"
-                        className={`w-full bg-[#0a0a0a] border px-4 py-[14px] text-[15px] text-white placeholder-[#2a2a2a] outline-none transition-all duration-200 font-sans ${regEmailError ? 'border-red-500/50' : 'border-[#222] focus:border-accent/50 focus:bg-[#0d0b09]'}`}
+                        className={`w-full bg-[#141414] border px-5 py-4 text-sm text-white placeholder-[#444] outline-none transition-colors font-sans ${regEmailError ? 'border-red-500/60' : 'border-[#383838] focus:border-accent/40'}`}
                       />
-                      {regEmailError && <p className="text-red-400 text-[11px] font-sans mt-1.5">{regEmailError}</p>}
+                      {regEmailError && <p className="text-red-500/80 text-[9px] font-sans uppercase tracking-widest">{regEmailError}</p>}
                     </div>
-                    <div>
-                      <label className="block text-[11px] font-sans font-medium uppercase tracking-[0.15em] text-[#666] mb-2">Telefono</label>
+                    <div className="space-y-1">
+                      <label className="text-[9px] hv font-black uppercase tracking-[0.2em] text-[#666]">Telefono</label>
                       <input
                         type="tel" required value={regPhone}
                         onChange={e => {
-                          const val = e.target.value; setRegPhone(val); setRegError('');
+                          const val = e.target.value;
+                          setRegPhone(val);
+                          setRegError('');
                           const digits = val.replace(/\D/g, '');
-                          if (digits.length >= 9) setRegPhoneError(validatePhone(val));
-                          else setRegPhoneError('');
+                          if (digits.length >= 9)
+                            setRegPhoneError(validatePhone(val));
+                          else
+                            setRegPhoneError('');
                         }}
                         onBlur={() => { if (regPhone) setRegPhoneError(validatePhone(regPhone)); }}
                         placeholder="+39 333 000 0000"
-                        className={`w-full bg-[#0a0a0a] border px-4 py-[14px] text-[15px] text-white placeholder-[#2a2a2a] outline-none transition-all duration-200 font-sans ${regPhoneError ? 'border-red-500/50' : 'border-[#222] focus:border-accent/50 focus:bg-[#0d0b09]'}`}
+                        className={`w-full bg-[#141414] border px-5 py-4 text-sm text-white placeholder-[#444] outline-none transition-colors font-sans ${regPhoneError ? 'border-red-500/60' : 'border-[#383838] focus:border-accent/40'}`}
                       />
-                      {regPhoneError && <p className="text-red-400 text-[11px] font-sans mt-1.5">{regPhoneError}</p>}
+                      {regPhoneError && <p className="text-red-500/80 text-[9px] font-sans uppercase tracking-widest">{regPhoneError}</p>}
                     </div>
-                    <div>
-                      <label className="block text-[11px] font-sans font-medium uppercase tracking-[0.15em] text-[#666] mb-2">Password</label>
+                    <div className="space-y-1">
+                      <label className="text-[9px] hv font-black uppercase tracking-[0.2em] text-[#666]">Password</label>
                       <input type="password" required value={regPassword} onChange={e => { setRegPassword(e.target.value); setRegError(''); }}
                         placeholder="••••••••"
-                        className="w-full bg-[#0a0a0a] border border-[#222] px-4 py-[14px] text-[15px] text-white placeholder-[#2a2a2a] outline-none focus:border-accent/50 focus:bg-[#0d0b09] transition-all duration-200 font-sans" />
+                        className="w-full bg-[#141414] border border-[#383838] px-5 py-4 text-sm text-white placeholder-[#444] outline-none focus:border-accent/40 transition-colors font-sans" />
                     </div>
-                    {regError && <p className="text-red-400 text-[11px] font-sans">{regError}</p>}
+                    {regError && <p className="text-red-500/80 text-[10px] font-sans uppercase tracking-widest pt-1">{regError}</p>}
                     <motion.button
                       type="submit"
                       disabled={!!regEmailError || !!regPhoneError}
-                      whileTap={!regEmailError && !regPhoneError ? { scale: 0.98 } : {}}
-                      className={`w-full py-[15px] text-[11px] hv font-black uppercase tracking-[0.25em] transition-all duration-200 ${regEmailError || regPhoneError ? 'bg-[#1e1e1e] text-[#555] cursor-not-allowed' : 'bg-accent text-black hover:bg-white hover:shadow-[0_0_32px_rgba(212,98,42,0.3)]'}`}>
-                      Invia Richiesta
+                      whileHover={!regEmailError && !regPhoneError ? { scale: 1.01 } : {}}
+                      whileTap={!regEmailError && !regPhoneError ? { scale: 0.99 } : {}}
+                      className={`group w-full py-[18px] text-[10px] hv font-black uppercase tracking-[0.3em] flex items-center justify-between px-6 transition-colors mt-2 ${regEmailError || regPhoneError ? 'bg-[#2a2a2a] text-[#777] cursor-not-allowed' : 'bg-accent text-black hover:bg-white'}`}>
+                      <span>Invia Richiesta</span>
+                      <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
                     </motion.button>
                   </form>
 
-                  <p className="text-center text-[11px] font-sans text-[#383838] mt-8">
+                  <p className="text-center text-[9px] font-sans text-[#444] uppercase tracking-widest mt-8">
                     Hai già un account?{' '}
                     <button onClick={() => { setAuthScreen('login'); setRegError(''); setRegEmailError(''); setRegPhoneError(''); }}
-                      className="text-[#666] hover:text-accent transition-colors underline underline-offset-2">
+                      className="text-[#777] hover:text-accent transition-colors underline underline-offset-2">
                       Accedi
                     </button>
                   </p>
