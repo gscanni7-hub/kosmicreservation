@@ -115,6 +115,12 @@ function validatePhone(phone: string): string {
   return 'Formato non valido. Es: +39 333 000 0000 oppure 333 000 0000';
 }
 
+const calcActualBudget = (budget: number, guestsCount: number, actualPeople: number): number => {
+  if (guestsCount <= 0) return budget;
+  const scaled = Math.round((actualPeople / guestsCount) * budget);
+  return Math.max(budget, scaled);
+};
+
 const PAGE = {
   initial: { opacity: 0, y: 12 },
   animate: { opacity: 1, y: 0 },
@@ -362,24 +368,32 @@ export default function App() {
 
   const handleCheckIn = (reservationId: string, actualPeople: number) => {
     const res = reservations.find(r => r.id === reservationId);
+    if (!res) return;
+    const actualBudget = calcActualBudget(res.budget, res.guestsCount, actualPeople);
     setReservations(prev => prev.map(r =>
-      r.id === reservationId ? { ...r, checkedIn: true, actualPeople } : r
+      r.id === reservationId ? { ...r, checkedIn: true, actualPeople, actualBudget } : r
     ));
-    if (res) addToast(`${res.customerName} — entrati`, `${actualPeople} ospiti · Tav. ${res.tableName ?? res.tableId}`);
+    const diff = actualBudget - res.budget;
+    const budgetStr = diff > 0 ? `€${actualBudget} (+€${diff})` : `€${actualBudget}`;
+    addToast(`${res.customerName} — entrati`, `${actualPeople} ospiti · Tav. ${res.tableName ?? res.tableId} · ${budgetStr}`);
   };
 
   const handleUndoCheckIn = (reservationId: string) => {
     setReservations(prev => prev.map(r =>
-      r.id === reservationId ? { ...r, checkedIn: false, actualPeople: undefined } : r
+      r.id === reservationId ? { ...r, checkedIn: false, actualPeople: undefined, actualBudget: undefined } : r
     ));
   };
 
   const handleUpdatePeople = (reservationId: string, actualPeople: number) => {
-    setReservations(prev => prev.map(r =>
-      r.id === reservationId ? { ...r, actualPeople } : r
-    ));
     const res = reservations.find(r => r.id === reservationId);
-    if (res) addToast(`${res.customerName} — aggiornato`, `${actualPeople} ospiti · Tav. ${res.tableName ?? res.tableId}`);
+    if (!res) return;
+    const actualBudget = calcActualBudget(res.budget, res.guestsCount, actualPeople);
+    setReservations(prev => prev.map(r =>
+      r.id === reservationId ? { ...r, actualPeople, actualBudget } : r
+    ));
+    const diff = actualBudget - res.budget;
+    const budgetStr = diff > 0 ? `€${actualBudget} (+€${diff})` : `€${actualBudget}`;
+    addToast(`${res.customerName} — aggiornato`, `${actualPeople} ospiti · ${budgetStr}`);
   };
 
   const handleApproveUser = (id: string) =>
@@ -433,7 +447,7 @@ export default function App() {
     r => (r.status === 'confirmed' || r.status === 'blocked') && activeEventIds.has(r.eventId)
   );
   const occupancyPct = totalTables > 0 ? Math.round((bookedReservations.length / totalTables) * 100) : 0;
-  const revenueEst   = bookedReservations.reduce((sum, r) => sum + r.budget, 0);
+  const revenueEst   = bookedReservations.reduce((sum, r) => sum + (r.actualBudget ?? r.budget), 0);
 
   const pendingUsers = managedUsers.filter(u => u.status === 'pending');
   const pendingResv  = reservations.filter(r => r.approvalStatus === 'pending');
@@ -1333,7 +1347,7 @@ export default function App() {
               const myRes = reservations.filter(r => r.prId === user.id);
               const myEventIds = [...new Set(myRes.map(r => r.eventId))];
               const approved = myRes.filter(r => r.approvalStatus === 'approved').length;
-              const totalBudget = myRes.reduce((s, r) => s + r.budget, 0);
+              const totalBudget = myRes.reduce((s, r) => s + (r.actualBudget ?? r.budget), 0);
               const approvalRate = myRes.length > 0 ? Math.round((approved / myRes.length) * 100) : 0;
 
               return (
@@ -1378,7 +1392,7 @@ export default function App() {
                         const venue = venues.find(v => v.id === event.venueId);
                         const eventRes = myRes.filter(r => r.eventId === eventId);
                         const eventApproved = eventRes.filter(r => r.approvalStatus === 'approved').length;
-                        const eventBudget = eventRes.reduce((s, r) => s + r.budget, 0);
+                        const eventBudget = eventRes.reduce((s, r) => s + (r.actualBudget ?? r.budget), 0);
                         return (
                           <HistoryEventRow
                             key={eventId}
@@ -1741,7 +1755,7 @@ function PRDetailView({ pr, reservations, events, onBack, onUpdateStatus, status
   const myRes = reservations.filter(r => r.prId === pr.id);
   const myEventIds = [...new Set(myRes.map(r => r.eventId))];
   const approved = myRes.filter(r => r.approvalStatus === 'approved').length;
-  const totalBudget = myRes.reduce((s, r) => s + r.budget, 0);
+  const totalBudget = myRes.reduce((s, r) => s + (r.actualBudget ?? r.budget), 0);
   const approvalRate = myRes.length > 0 ? Math.round((approved / myRes.length) * 100) : 0;
 
   return (
@@ -1850,7 +1864,7 @@ function PRDetailView({ pr, reservations, events, onBack, onUpdateStatus, status
                 if (!event) return null;
                 const eventRes = myRes.filter(r => r.eventId === eventId);
                 const eventApproved = eventRes.filter(r => r.approvalStatus === 'approved').length;
-                const eventBudget = eventRes.reduce((s, r) => s + r.budget, 0);
+                const eventBudget = eventRes.reduce((s, r) => s + (r.actualBudget ?? r.budget), 0);
                 return (
                   <HistoryEventRow key={eventId} event={event} venueName="—"
                     reservations={eventRes} approvedCount={eventApproved} totalBudget={eventBudget} />
@@ -1997,7 +2011,12 @@ function HistoryEventRow({ event, venueName, reservations, approvedCount, totalB
                     <div className="min-w-0">
                       <p className="text-sm text-white font-sans truncate">{r.customerName}</p>
                       <p className="text-[9px] font-sans text-[#555] mt-0.5">
-                        {r.checkedIn ? `${r.actualPeople ?? r.guestsCount} entrati` : `${r.guestsCount} ospiti`} · €{r.budget}
+                        {r.checkedIn ? `${r.actualPeople ?? r.guestsCount} entrati` : `${r.guestsCount} ospiti`}
+                        {' · '}
+                        <span className="text-accent">€{r.checkedIn && r.actualBudget ? r.actualBudget : r.budget}</span>
+                        {r.checkedIn && r.actualBudget && r.actualBudget > r.budget && (
+                          <span className="text-green-400 ml-1">+€{r.actualBudget - r.budget}</span>
+                        )}
                       </p>
                     </div>
                   </div>
@@ -2097,6 +2116,8 @@ function HostCheckinView({ reservations, events, venues, userRole, onCheckIn, on
                 {eventRes.map(res => {
                   const isIn = res.checkedIn;
                   const people = localPeople[res.id] ?? res.guestsCount;
+                  const previewBudget = calcActualBudget(res.budget, res.guestsCount, people);
+                  const budgetDiff = previewBudget - res.budget;
                   return (
                     <div key={res.id} className={cn(
                       'px-6 py-4 flex items-center gap-4 transition-colors',
@@ -2114,7 +2135,12 @@ function HostCheckinView({ reservations, events, venues, userRole, onCheckIn, on
                             <span className="text-[8px] font-sans border border-green-500/30 bg-green-500/10 px-2 py-0.5 text-green-400 uppercase tracking-widest">Entrato</span>
                           )}
                         </div>
-                        <p className="text-[9px] font-sans text-[#555] mt-1">PR: {res.prName} · previsti {res.guestsCount} pax</p>
+                        <p className="text-[9px] font-sans text-[#555] mt-1">
+                          PR: {res.prName} · previsti {res.guestsCount} pax · €{res.budget}
+                          {budgetDiff > 0 && people !== res.guestsCount && (
+                            <span className="text-green-400 ml-1">→ €{previewBudget} (+€{budgetDiff})</span>
+                          )}
+                        </p>
                       </div>
 
                       {/* People input */}
@@ -2661,7 +2687,14 @@ function ReservationsTable({ reservations, userRole, events, onDelete, onEdit }:
                           <span className="text-sm font-sans text-[#aaa]">{res.guestsCount}</span>
                         </td>
                         <td className="px-6 py-3.5">
-                          <span className="hv font-black text-sm text-accent">€{res.budget}</span>
+                          {res.checkedIn && res.actualBudget && res.actualBudget !== res.budget ? (
+                            <div>
+                              <span className="hv font-black text-sm text-accent">€{res.actualBudget}</span>
+                              <span className="text-[9px] font-sans text-green-400 ml-1">+€{res.actualBudget - res.budget}</span>
+                            </div>
+                          ) : (
+                            <span className="hv font-black text-sm text-accent">€{res.budget}</span>
+                          )}
                         </td>
                         <td className="px-6 py-3.5">
                           <div className="flex items-center gap-2 flex-wrap">

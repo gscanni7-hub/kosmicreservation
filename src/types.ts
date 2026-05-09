@@ -87,6 +87,7 @@ export interface Reservation {
   createdAt: string;
   checkedIn?: boolean;
   actualPeople?: number;
+  actualBudget?: number;
 }
 
 export interface Venue {
