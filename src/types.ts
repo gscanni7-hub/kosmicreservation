@@ -26,14 +26,16 @@ export interface UserProfile {
 export interface Table {
   id: string;
   name: string;
+  letter?: string;
   x: number;
   y: number;
   width: number;
   height: number;
-  shape: 'rect' | 'circle';
+  shape: 'rect' | 'circle' | 'bar' | 'consolle';
   area: string;
   capacity: number;
   minSpend: number;
+  isFixture?: boolean;
 }
 
 export interface StaticArea {
@@ -52,6 +54,7 @@ export interface FloorPlan {
   canvasHeight?: number;
   staticAreas?: StaticArea[];
   tables: Table[];
+  bgImage?: string;
 }
 
 export interface Event {
