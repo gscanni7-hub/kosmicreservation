@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Calendar, Settings, BarChart3, LogOut, ChevronRight, ChevronDown,
   Plus, Download, Filter, Building2, X, ArrowLeft, Menu, Map, Pencil, Trash2,
-  UserCheck, Bell, Clock, TrendingUp, CheckCircle2, XCircle, Users, Eye, EyeOff
+  UserCheck, Bell, Clock, TrendingUp, CheckCircle2, XCircle, Users, Eye, EyeOff,
+  DoorOpen, LogIn
 } from 'lucide-react';
 import { MOCK_USERS, INITIAL_VENUES, INITIAL_EVENTS, INITIAL_RESERVATIONS, INITIAL_MANAGED_USERS } from './constants';
 import { UserProfile, Event, Reservation, Venue, FloorPlan, ManagedUser } from './types';
@@ -13,7 +14,9 @@ import { isFirebaseConfigured, signInWithGoogle } from './lib/firebase';
 import FloorPlanViewer from './components/floorplan/FloorPlanViewer';
 import FloorPlanEditor from './components/floorplan/FloorPlanEditor';
 
-type AppView = 'venues' | 'venue-events' | 'events' | 'active-events' | 'plan' | 'editor' | 'reservations' | 'approvals' | 'profile' | 'history' | 'pr-management';
+type AppView = 'venues' | 'venue-events' | 'events' | 'active-events' | 'plan' | 'editor' | 'reservations' | 'approvals' | 'profile' | 'history' | 'pr-management' | 'checkin';
+
+interface Toast { id: string; message: string; sub?: string; }
 
 const DISPOSABLE_DOMAINS = new Set([
   'mailinator.com','guerrillamail.com','guerrillamail.net','guerrillamail.org','guerrillamail.de',
@@ -157,7 +160,13 @@ export default function App() {
   const [view, setView] = useState<AppView>('venues');
   const [venues, setVenues] = useState(INITIAL_VENUES);
   const [events, setEvents] = useState(INITIAL_EVENTS);
-  const [reservations, setReservations] = useState<Reservation[]>(INITIAL_RESERVATIONS);
+  const [reservations, setReservations] = useState<Reservation[]>(() => {
+    try {
+      const saved = localStorage.getItem('nightplan_reservations');
+      return saved ? JSON.parse(saved) : INITIAL_RESERVATIONS;
+    } catch { return INITIAL_RESERVATIONS; }
+  });
+  const [toasts, setToasts] = useState<Toast[]>([]);
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [showNewEventModal, setShowNewEventModal] = useState(false);
@@ -176,6 +185,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('nightplan_managed_users', JSON.stringify(managedUsers));
   }, [managedUsers]);
+
+  useEffect(() => {
+    localStorage.setItem('nightplan_reservations', JSON.stringify(reservations));
+  }, [reservations]);
 
   useEffect(() => {
     const hash = window.location.hash;
@@ -206,7 +219,7 @@ export default function App() {
     const profile: UserProfile = { id: found.id, email: found.email, role: found.role, displayName: found.displayName, lastName: found.lastName, phone: found.phone, profileImage: found.profileImage };
     localStorage.setItem('nightplan_user', JSON.stringify(profile));
     setUser(profile);
-    setView(found.role === 'admin' ? 'active-events' : 'events');
+    setView(found.role === 'admin' ? 'active-events' : found.role === 'host' ? 'checkin' : 'events');
     setLoginError('');
   };
 
@@ -331,6 +344,26 @@ export default function App() {
     localStorage.setItem('nightplan_user', JSON.stringify(updated));
   };
 
+  const addToast = (message: string, sub?: string) => {
+    const id = Date.now().toString();
+    setToasts(prev => [...prev, { id, message, sub }]);
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 5000);
+  };
+
+  const handleCheckIn = (reservationId: string, actualPeople: number) => {
+    const res = reservations.find(r => r.id === reservationId);
+    setReservations(prev => prev.map(r =>
+      r.id === reservationId ? { ...r, checkedIn: true, actualPeople } : r
+    ));
+    if (res) addToast(`${res.customerName} — entrati`, `${actualPeople} ospiti · Tav. ${res.tableName ?? res.tableId}`);
+  };
+
+  const handleUndoCheckIn = (reservationId: string) => {
+    setReservations(prev => prev.map(r =>
+      r.id === reservationId ? { ...r, checkedIn: false, actualPeople: undefined } : r
+    ));
+  };
+
   const handleApproveUser = (id: string) =>
     setManagedUsers(prev => prev.map(u => u.id === id ? { ...u, status: 'approved' } : u));
   const handleRejectUser = (id: string) =>
@@ -401,6 +434,7 @@ export default function App() {
     if (view === 'profile')        return 'Il Mio Profilo';
     if (view === 'history')        return 'Il Mio Storico';
     if (view === 'pr-management')  return selectedPR ? `${selectedPR.displayName} ${selectedPR.lastName}` : 'I Miei PR';
+    if (view === 'checkin')        return 'Ingresso Serata';
     return '';
   };
 
@@ -1344,9 +1378,45 @@ export default function App() {
               );
             })()}
 
+            {/* Check-in ingresso */}
+            {view === 'checkin' && (
+              <motion.div key="checkin" {...PAGE}>
+                <HostCheckinView
+                  reservations={reservations}
+                  events={events}
+                  venues={venues}
+                  userRole={user.role}
+                  onCheckIn={handleCheckIn}
+                  onUndoCheckIn={handleUndoCheckIn}
+                />
+              </motion.div>
+            )}
+
           </AnimatePresence>
         </div>
       </main>
+
+      {/* Toast overlay */}
+      <div className="fixed bottom-6 right-6 z-[999] flex flex-col gap-2 pointer-events-none">
+        <AnimatePresence>
+          {toasts.map(t => (
+            <motion.div
+              key={t.id}
+              initial={{ opacity: 0, y: 16, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.96 }}
+              transition={{ duration: 0.2 }}
+              className="bg-[#1e1e1e] border border-[#2e2e2e] border-l-4 border-l-accent px-5 py-4 min-w-[260px] shadow-2xl"
+            >
+              <div className="flex items-center gap-2">
+                <CheckCircle2 size={13} className="text-accent shrink-0" />
+                <span className="hv font-black text-white text-[11px] uppercase tracking-widest">{t.message}</span>
+              </div>
+              {t.sub && <p className="text-[9px] font-sans text-[#777] mt-1.5 pl-5 uppercase tracking-widest">{t.sub}</p>}
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
 
       {/* New Event Modal */}
       {showNewEventModal && selectedVenue && (
@@ -1896,15 +1966,27 @@ function HistoryEventRow({ event, venueName, reservations, approvedCount, totalB
               {reservations.map(r => (
                 <div key={r.id} className="px-6 py-3.5 flex items-center justify-between gap-4">
                   <div className="flex items-center gap-4 min-w-0">
-                    <div className="w-7 h-7 bg-[#141414] border border-[#252525] flex items-center justify-center shrink-0">
-                      <span className="text-[9px] hv font-black text-accent">{r.tableName ?? '—'}</span>
+                    <div className={cn(
+                      'w-7 h-7 border flex items-center justify-center shrink-0',
+                      r.checkedIn ? 'bg-green-500/10 border-green-500/30' : 'bg-[#141414] border-[#252525]'
+                    )}>
+                      <span className={cn('text-[9px] hv font-black', r.checkedIn ? 'text-green-400' : 'text-accent')}>
+                        {r.tableName ?? '—'}
+                      </span>
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm text-white font-sans truncate">{r.customerName}</p>
-                      <p className="text-[9px] font-sans text-[#555] mt-0.5">{r.guestsCount} ospiti · €{r.budget}</p>
+                      <p className="text-[9px] font-sans text-[#555] mt-0.5">
+                        {r.checkedIn ? `${r.actualPeople ?? r.guestsCount} entrati` : `${r.guestsCount} ospiti`} · €{r.budget}
+                      </p>
                     </div>
                   </div>
-                  <div className="shrink-0">
+                  <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                    {r.checkedIn && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[9px] font-sans uppercase tracking-widest bg-green-500/10 text-green-400 border border-green-500/20">
+                        <CheckCircle2 size={9}/> Entrato
+                      </span>
+                    )}
                     {approvalBadge(r.approvalStatus)}
                   </div>
                 </div>
@@ -1913,6 +1995,144 @@ function HistoryEventRow({ event, venueName, reservations, approvedCount, totalB
           </motion.div>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+/* ── HostCheckinView ─────────────────────────────────────── */
+function HostCheckinView({ reservations, events, venues, userRole, onCheckIn, onUndoCheckIn }: {
+  reservations: Reservation[];
+  events: Event[];
+  venues: Venue[];
+  userRole: string;
+  onCheckIn: (id: string, actualPeople: number) => void;
+  onUndoCheckIn: (id: string) => void;
+}) {
+  const activeEvents = events.filter(e => e.status === 'active');
+  const approvedRes = reservations.filter(r => r.approvalStatus === 'approved');
+  const checkedInCount = approvedRes.filter(r => r.checkedIn).length;
+
+  const [localPeople, setLocalPeople] = useState<Record<string, number>>(() =>
+    Object.fromEntries(approvedRes.map(r => [r.id, r.actualPeople ?? r.guestsCount]))
+  );
+
+  const setPeople = (id: string, val: number) =>
+    setLocalPeople(prev => ({ ...prev, [id]: val }));
+
+  if (activeEvents.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-32 gap-4">
+        <DoorOpen size={32} className="text-[#333]" />
+        <p className="text-[9px] font-sans uppercase tracking-[0.4em] text-[#555]">Nessun evento attivo stasera</p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="hv font-black text-2xl uppercase text-white tracking-tight">Ingresso Serata</h1>
+          <p className="text-[9px] font-sans text-[#666] uppercase tracking-[0.3em] mt-1">
+            {checkedInCount} / {approvedRes.length} tavoli entrati
+          </p>
+        </div>
+        {approvedRes.length > 0 && (
+          <div className="text-right">
+            <div className="hv font-black text-4xl text-white leading-none">{checkedInCount}</div>
+            <div className="mt-2 h-px w-24 bg-[#2a2a2a] relative overflow-hidden">
+              <div
+                className="h-px bg-accent absolute inset-y-0 left-0 transition-all duration-700"
+                style={{ width: `${approvedRes.length > 0 ? (checkedInCount / approvedRes.length) * 100 : 0}%` }}
+              />
+            </div>
+            <p className="text-[8px] font-sans text-[#555] uppercase tracking-widest mt-1">entrati</p>
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-6">
+        {activeEvents.map(event => {
+          const venue = venues.find(v => v.id === event.venueId);
+          const eventRes = approvedRes
+            .filter(r => r.eventId === event.id)
+            .sort((a, b) => a.customerName.localeCompare(b.customerName));
+          if (eventRes.length === 0) return null;
+          const eventChecked = eventRes.filter(r => r.checkedIn).length;
+
+          return (
+            <div key={event.id} className="border border-[#2a2a2a] bg-card overflow-hidden">
+              {/* Event header */}
+              <div className="px-6 py-4 border-b border-[#2a2a2a] bg-[#141414] flex items-center justify-between">
+                <div>
+                  <p className="hv font-black text-sm uppercase text-white tracking-widest">{event.name}</p>
+                  <p className="text-[8px] font-sans text-[#666] uppercase tracking-widest mt-0.5">{venue?.name ?? ''} · {event.date}</p>
+                </div>
+                <span className="hv font-black text-accent text-lg">{eventChecked}<span className="text-[#555] text-sm font-normal">/{eventRes.length}</span></span>
+              </div>
+
+              {/* Reservation rows */}
+              <div className="divide-y divide-[#1e1e1e]">
+                {eventRes.map(res => {
+                  const isIn = res.checkedIn;
+                  const people = localPeople[res.id] ?? res.guestsCount;
+                  return (
+                    <div key={res.id} className={cn(
+                      'px-6 py-4 flex items-center gap-4 transition-colors',
+                      isIn ? 'bg-green-500/[0.04]' : 'hover:bg-white/[0.01]'
+                    )}>
+                      {/* Status dot */}
+                      <div className={cn('w-2 h-2 rounded-full shrink-0', isIn ? 'bg-green-500' : 'bg-[#333]')} />
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="hv font-black text-sm text-white uppercase">{res.customerName}</span>
+                          <span className="text-[8px] font-sans border border-[#333] px-2 py-0.5 text-[#888] uppercase tracking-widest">Tav. {res.tableName ?? res.tableId}</span>
+                          {isIn && (
+                            <span className="text-[8px] font-sans border border-green-500/30 bg-green-500/10 px-2 py-0.5 text-green-400 uppercase tracking-widest">Entrato</span>
+                          )}
+                        </div>
+                        <p className="text-[9px] font-sans text-[#555] mt-1">PR: {res.prName} · previsti {res.guestsCount} pax</p>
+                      </div>
+
+                      {/* People input */}
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          onClick={() => setPeople(res.id, Math.max(1, people - 1))}
+                          className="w-7 h-7 border border-[#333] text-[#888] hover:text-white hover:border-[#555] transition-colors text-lg leading-none flex items-center justify-center"
+                        >−</button>
+                        <span className="w-8 text-center hv font-black text-white text-sm">{people}</span>
+                        <button
+                          onClick={() => setPeople(res.id, people + 1)}
+                          className="w-7 h-7 border border-[#333] text-[#888] hover:text-white hover:border-[#555] transition-colors text-lg leading-none flex items-center justify-center"
+                        >+</button>
+                      </div>
+
+                      {/* Action button */}
+                      {!isIn ? (
+                        <button
+                          onClick={() => onCheckIn(res.id, people)}
+                          className="flex items-center gap-2 px-4 py-2 bg-accent text-black text-[9px] hv font-black uppercase tracking-widest hover:bg-white transition-colors shrink-0"
+                        >
+                          <LogIn size={12} /> Entra
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => onUndoCheckIn(res.id)}
+                          className="px-4 py-2 border border-[#333] text-[#666] text-[9px] hv font-black uppercase tracking-widest hover:border-red-500/50 hover:text-red-400 transition-colors shrink-0"
+                        >
+                          Annulla
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -1997,8 +2217,17 @@ function SidebarContent({ user, view, onNav, onLogout, occupancyPct = 0, revenue
               <NavLink icon={<Users size={14}/>} label="I Miei PR"
                 active={view==='pr-management'}
                 onClick={() => onNav('pr-management')} />
+              <NavLink icon={<DoorOpen size={14}/>} label="Ingresso"
+                active={view==='checkin'}
+                onClick={() => onNav('checkin')} />
             </div>
           </>
+        ) : user.role === 'host' ? (
+          <div className="space-y-0.5">
+            <NavLink icon={<DoorOpen size={14}/>} label="Ingresso Serata"
+              active={view==='checkin'}
+              onClick={() => onNav('checkin')} />
+          </div>
         ) : (
           <div className="space-y-0.5">
             <NavLink icon={<Calendar size={14}/>} label="Eventi"
@@ -2319,7 +2548,7 @@ function ReservationsTable({ reservations, userRole, events, onDelete, onEdit }:
           {groups.map(({ event, eventId, rows }) => (
             <div key={eventId}>
               {/* Event header */}
-              <div className="px-7 py-3 bg-[#141414] border-b border-[#2e2e2e] flex items-center gap-4">
+              <div className="px-7 py-3 bg-[#141414] border-b border-[#2e2e2e] flex items-center gap-4 flex-wrap">
                 <span className="hv font-black text-sm uppercase text-white tracking-widest">
                   {event?.name ?? eventId}
                 </span>
@@ -2329,6 +2558,11 @@ function ReservationsTable({ reservations, userRole, events, onDelete, onEdit }:
                 <span className="text-[9px] font-sans uppercase tracking-widest text-[#777]">
                   {rows.length} {rows.length === 1 ? 'prenotazione' : 'prenotazioni'}
                 </span>
+                {rows.some(r => r.checkedIn) && (
+                  <span className="flex items-center gap-1 text-[9px] font-sans uppercase tracking-widest text-green-400 border border-green-500/20 bg-green-500/5 px-2 py-0.5">
+                    <CheckCircle2 size={10} /> {rows.filter(r => r.checkedIn).length} entrati
+                  </span>
+                )}
                 {userRole === 'admin' && (
                   <button
                     onClick={() => exportEventCSV(rows, event?.name ?? eventId)}
@@ -2399,7 +2633,14 @@ function ReservationsTable({ reservations, userRole, events, onDelete, onEdit }:
                           <span className="hv font-black text-sm text-accent">€{res.budget}</span>
                         </td>
                         <td className="px-6 py-3.5">
-                          {approvalBadge(res.approvalStatus)}
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {approvalBadge(res.approvalStatus)}
+                            {res.checkedIn && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[9px] font-sans uppercase tracking-widest bg-green-500/10 text-green-400 border border-green-500/20">
+                                <CheckCircle2 size={9}/> Entrato{res.actualPeople ? ` · ${res.actualPeople}` : ''}
+                              </span>
+                            )}
+                          </div>
                         </td>
                         <td className="px-6 py-3.5">
                           {userRole === 'pr' && res.approvalStatus === 'pending' && (

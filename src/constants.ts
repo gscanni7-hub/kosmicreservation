@@ -4,20 +4,22 @@ interface MockCredential {
   id: string;
   email: string;
   password: string;
-  role: 'admin' | 'pr';
+  role: 'admin' | 'pr' | 'host';
   displayName: string;
   lastName?: string;
   phone?: string;
 }
 
 export const MOCK_USERS: MockCredential[] = [
-  { id: 'admin_1', email: 'g.scanni7@gmail.com',  password: '1234', role: 'admin', displayName: 'Admin' },
-  { id: 'pr_1',    email: 'lucavisca@gmail.com',  password: '1234', role: 'pr',    displayName: 'Luca Visca' },
+  { id: 'admin_1', email: 'g.scanni7@gmail.com',        password: '1234', role: 'admin', displayName: 'Admin' },
+  { id: 'pr_1',    email: 'lucavisca@gmail.com',        password: '1234', role: 'pr',    displayName: 'Luca Visca' },
+  { id: 'host_1',  email: 'accoglienza@nightplan.it',   password: '1234', role: 'host',  displayName: 'Accoglienza' },
 ];
 
 export const INITIAL_MANAGED_USERS: ManagedUser[] = [
-  { id: 'admin_1', email: 'g.scanni7@gmail.com', password: '1234', role: 'admin', displayName: 'Admin', lastName: '',     phone: '', status: 'approved', createdAt: '2025-01-01T00:00:00.000Z' },
-  { id: 'pr_1',    email: 'lucavisca@gmail.com', password: '1234', role: 'pr',    displayName: 'Luca',  lastName: 'Visca', phone: '', status: 'approved', createdAt: '2025-01-01T00:00:00.000Z' },
+  { id: 'admin_1', email: 'g.scanni7@gmail.com',      password: '1234', role: 'admin', displayName: 'Admin',        lastName: '',      phone: '', status: 'approved', createdAt: '2025-01-01T00:00:00.000Z' },
+  { id: 'pr_1',    email: 'lucavisca@gmail.com',      password: '1234', role: 'pr',    displayName: 'Luca',         lastName: 'Visca', phone: '', status: 'approved', createdAt: '2025-01-01T00:00:00.000Z' },
+  { id: 'host_1',  email: 'accoglienza@nightplan.it', password: '1234', role: 'host',  displayName: 'Accoglienza',  lastName: '',      phone: '', status: 'approved', createdAt: '2025-01-01T00:00:00.000Z' },
 ];
 
 export const MOCK_PR: UserProfile = {

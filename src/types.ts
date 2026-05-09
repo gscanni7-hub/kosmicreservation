@@ -1,4 +1,4 @@
-export type Role = 'admin' | 'pr';
+export type Role = 'admin' | 'pr' | 'host';
 
 export interface ManagedUser {
   id: string;
@@ -85,6 +85,8 @@ export interface Reservation {
   status: ReservationStatus;
   approvalStatus: 'pending' | 'approved' | 'rejected';
   createdAt: string;
+  checkedIn?: boolean;
+  actualPeople?: number;
 }
 
 export interface Venue {
