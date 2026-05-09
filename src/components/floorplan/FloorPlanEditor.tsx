@@ -97,16 +97,19 @@ export default function FloorPlanEditor({ floorPlan, onSave }: FloorPlanEditorPr
 
   const handleTransformEnd = (id: string, e: any) => {
     const node = e.target;
-    const scaleX = node.scaleX();
-    const scaleY = node.scaleY();
+    // getClientRect returns the real bounding box in parent coordinates
+    // after the transform — prevents the "piccolissimo" bug from scale drift
+    const box = node.getClientRect({ relativeTo: node.getParent() });
     node.scaleX(1);
     node.scaleY(1);
+    node.x(box.x);
+    node.y(box.y);
     setTables(prev => prev.map(t => t.id === id ? {
       ...t,
-      x: node.x(),
-      y: node.y(),
-      width: Math.max(24, t.width * scaleX),
-      height: Math.max(24, t.height * scaleY),
+      x: box.x,
+      y: box.y,
+      width: Math.max(24, box.width),
+      height: Math.max(24, box.height),
     } : t));
   };
 
@@ -115,6 +118,19 @@ export default function FloorPlanEditor({ floorPlan, onSave }: FloorPlanEditorPr
     setTables(prev => prev.filter(t => t.id !== selectedId));
     setSelectedId(null);
   };
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Delete' && e.key !== 'Backspace') return;
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (!selectedId) return;
+      setTables(prev => prev.filter(t => t.id !== selectedId));
+      setSelectedId(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selectedId]);
 
   const handleBgUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
