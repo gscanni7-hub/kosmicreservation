@@ -13,6 +13,7 @@ interface FloorPlanViewerProps {
   onReservationAdded: (res: Reservation) => void;
   onReservationUpdated: (res: Reservation) => void;
   onReservationRemoved: (id: string) => void;
+  hostMode?: boolean;
 }
 
 const STATUS_COLORS = {
@@ -22,9 +23,16 @@ const STATUS_COLORS = {
   free:      '#22c55e',
 } as const;
 
+const HOST_COLORS = {
+  checkedIn:  '#22c55e',
+  reserved:   '#D4622A',
+  free:       '#2a2a2a',
+} as const;
+
 export default function FloorPlanViewer({
   event, floorPlan, reservations, currentUser,
   onReservationAdded, onReservationUpdated, onReservationRemoved,
+  hostMode = false,
 }: FloorPlanViewerProps) {
   const [selectedTable, setSelectedTable]       = useState<Table | null>(null);
   const [showBookingModal, setShowBookingModal]  = useState(false);
@@ -96,18 +104,21 @@ export default function FloorPlanViewer({
 
               {floorPlan.tables.map(table => {
                 const status = getStatus(table.id);
-                const color  = STATUS_COLORS[status as keyof typeof STATUS_COLORS] ?? STATUS_COLORS.free;
+                const res    = getReservation(table.id);
+                const color  = hostMode
+                  ? (res?.checkedIn ? HOST_COLORS.checkedIn : res ? HOST_COLORS.reserved : HOST_COLORS.free)
+                  : (STATUS_COLORS[status as keyof typeof STATUS_COLORS] ?? STATUS_COLORS.free);
                 const sel    = selectedTable?.id === table.id;
 
                 return (
                   <Group key={table.id} x={table.x} y={table.y}
                     onClick={() => {
                       setSelectedTable(table);
-                      if (status === 'free') setShowBookingModal(true);
+                      if (!hostMode && status === 'free') setShowBookingModal(true);
                     }}
                     onTap={() => {
                       setSelectedTable(table);
-                      if (status === 'free') setShowBookingModal(true);
+                      if (!hostMode && status === 'free') setShowBookingModal(true);
                     }}>
                     {table.shape === 'rect' ? (
                       <Rect width={table.width} height={table.height}
@@ -135,18 +146,37 @@ export default function FloorPlanViewer({
 
         <div className="border border-[#2a2a2a] px-5 py-3 flex items-center gap-6 bg-[#080808]">
           <span className="text-[8px] font-sans uppercase tracking-[0.4em] text-[#666] border-r border-[#2a2a2a] pr-5 shrink-0">Tavoli</span>
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="w-2 h-2 shrink-0 bg-[#ef4444]" />
-            <span className="text-[8px] font-sans uppercase tracking-widest text-[#666]">Confirmed</span>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="w-2 h-2 shrink-0 bg-[#f97316]" />
-            <span className="text-[8px] font-sans uppercase tracking-widest text-[#666]">In attesa</span>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="w-2 h-2 shrink-0 bg-[#22c55e]" />
-            <span className="text-[8px] font-sans uppercase tracking-widest text-[#666]">Free</span>
-          </div>
+          {hostMode ? (
+            <>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="w-2 h-2 shrink-0 bg-[#22c55e]" />
+                <span className="text-[8px] font-sans uppercase tracking-widest text-[#666]">Entrato</span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="w-2 h-2 shrink-0 bg-[#D4622A]" />
+                <span className="text-[8px] font-sans uppercase tracking-widest text-[#666]">Atteso</span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="w-2 h-2 shrink-0 bg-[#2a2a2a]" />
+                <span className="text-[8px] font-sans uppercase tracking-widest text-[#666]">Libero</span>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="w-2 h-2 shrink-0 bg-[#ef4444]" />
+                <span className="text-[8px] font-sans uppercase tracking-widest text-[#666]">Confirmed</span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="w-2 h-2 shrink-0 bg-[#f97316]" />
+                <span className="text-[8px] font-sans uppercase tracking-widest text-[#666]">In attesa</span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="w-2 h-2 shrink-0 bg-[#22c55e]" />
+                <span className="text-[8px] font-sans uppercase tracking-widest text-[#666]">Free</span>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -194,8 +224,16 @@ export default function FloorPlanViewer({
                       <div className="space-y-0">
                         <InfoRow label="Cliente" value={res.customerName} />
                         <InfoRow label="PR"      value={res.prName} accent />
-                        <InfoRow label="Pax"     value={String(res.guestsCount)} />
-                        <InfoRow label="Budget"  value={`€${res.budget}`} accent />
+                        <InfoRow label="Pax previsti" value={String(res.guestsCount)} />
+                        {hostMode ? (
+                          <>
+                            <InfoRow label="Pax entrati" value={res.checkedIn ? String(res.actualPeople ?? res.guestsCount) : '—'} accent />
+                            <InfoRow label="Incasso"     value={`€${res.actualBudget ?? res.budget}`} accent />
+                            <InfoRow label="Stato"       value={res.checkedIn ? 'Entrato ✓' : 'In attesa'} accent />
+                          </>
+                        ) : (
+                          <InfoRow label="Budget" value={`€${res.budget}`} accent />
+                        )}
                       </div>
 
                       {res.bottles && (
@@ -212,7 +250,7 @@ export default function FloorPlanViewer({
                         </div>
                       )}
 
-                      {allowed ? (
+                      {!hostMode && (allowed ? (
                         <div className="flex gap-2 pt-2">
                           <button
                             onClick={() => openEdit(res)}
@@ -232,7 +270,7 @@ export default function FloorPlanViewer({
                             Prenotazione di un altro PR
                           </p>
                         </div>
-                      )}
+                      ))}
                     </div>
                   );
                 })()}
@@ -281,8 +319,16 @@ export default function FloorPlanViewer({
                       <div className="space-y-0">
                         <InfoRow label="Cliente" value={res.customerName} />
                         <InfoRow label="PR"      value={res.prName} accent />
-                        <InfoRow label="Pax"     value={String(res.guestsCount)} />
-                        <InfoRow label="Budget"  value={`€${res.budget}`} accent />
+                        <InfoRow label="Pax previsti" value={String(res.guestsCount)} />
+                        {hostMode ? (
+                          <>
+                            <InfoRow label="Pax entrati" value={res.checkedIn ? String(res.actualPeople ?? res.guestsCount) : '—'} accent />
+                            <InfoRow label="Incasso"     value={`€${res.actualBudget ?? res.budget}`} accent />
+                            <InfoRow label="Stato"       value={res.checkedIn ? 'Entrato ✓' : 'In attesa'} accent />
+                          </>
+                        ) : (
+                          <InfoRow label="Budget"  value={`€${res.budget}`} accent />
+                        )}
                       </div>
                       {res.bottles && (
                         <div className="border border-[#2a2a2a] p-3">
@@ -290,7 +336,7 @@ export default function FloorPlanViewer({
                           <p className="font-mono text-[10px] text-white">{res.bottles}</p>
                         </div>
                       )}
-                      {allowed ? (
+                      {!hostMode && (allowed ? (
                         <div className="flex gap-2 pb-2">
                           <button onClick={() => { openEdit(res); }}
                             className="flex-1 py-3 text-[8px] hv font-black uppercase tracking-widest border border-[#2a2a2a] text-[#333] hover:text-white hover:border-[#333] transition-all">
@@ -306,7 +352,7 @@ export default function FloorPlanViewer({
                           <Lock size={11} className="text-[#333] shrink-0" />
                           <p className="text-[8px] font-sans uppercase tracking-widest text-[#333]">Prenotazione di un altro PR</p>
                         </div>
-                      )}
+                      ))}
                     </div>
                   );
                 })()}

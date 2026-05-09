@@ -1432,6 +1432,7 @@ export default function App() {
                   events={events}
                   venues={venues}
                   userRole={user.role}
+                  currentUser={user}
                   onCheckIn={handleCheckIn}
                   onUndoCheckIn={handleUndoCheckIn}
                   onUpdatePeople={handleUpdatePeople}
@@ -2082,7 +2083,7 @@ function CheckinRow({ res, events, venues, onCheckIn, onUndoCheckIn, onUpdatePeo
             {res.customerName}
           </p>
           <p className="text-[9px] font-sans text-[#555] mt-0.5 truncate">
-            Tav. {res.tableName ?? res.tableId} · PR {res.prName}
+            Tav. {res.tableName ?? res.tableId}{table?.area ? ` · ${table.area}` : ''} · PR {res.prName}
             {isIn && <span className="text-green-500 ml-2">· {res.actualPeople ?? res.guestsCount} entrati · €{res.actualBudget ?? res.budget}</span>}
           </p>
         </div>
@@ -2159,19 +2160,22 @@ function CheckinRow({ res, events, venues, onCheckIn, onUndoCheckIn, onUpdatePeo
   );
 }
 
-function HostCheckinView({ reservations, events, venues, userRole, onCheckIn, onUndoCheckIn, onUpdatePeople }: {
+function HostCheckinView({ reservations, events, venues, userRole, currentUser, onCheckIn, onUndoCheckIn, onUpdatePeople }: {
   reservations: Reservation[];
   events: Event[];
   venues: Venue[];
   userRole: string;
+  currentUser: UserProfile;
   onCheckIn: (id: string, actualPeople: number) => void;
   onUndoCheckIn: (id: string) => void;
   onUpdatePeople: (id: string, actualPeople: number) => void;
 }) {
   const [search, setSearch] = useState('');
   const [showEntered, setShowEntered] = useState(false);
+  const [tab, setTab] = useState<'lista' | 'pianta'>('lista');
 
   const activeEvents = events.filter(e => e.status === 'active');
+  const activeEvent = activeEvents[0] ?? null;
   const approvedRes = reservations.filter(r => r.approvalStatus === 'approved');
   const total = approvedRes.length;
   const checkedInCount = approvedRes.filter(r => r.checkedIn).length;
@@ -2197,10 +2201,10 @@ function HostCheckinView({ reservations, events, venues, userRole, onCheckIn, on
   }
 
   return (
-    <div className="max-w-xl mx-auto">
+    <div className="flex flex-col h-full">
 
       {/* Header */}
-      <div className="mb-6">
+      <div className="mb-5 max-w-xl mx-auto w-full">
         <h1 className="hv font-black text-2xl uppercase text-white tracking-tight">Ingresso Serata</h1>
         <div className="flex items-center gap-3 mt-3">
           <div className="flex-1 h-1 bg-[#222] overflow-hidden">
@@ -2211,69 +2215,113 @@ function HostCheckinView({ reservations, events, venues, userRole, onCheckIn, on
         </div>
       </div>
 
-      {/* Search */}
-      <div className="relative mb-6">
-        <input
-          type="text"
-          placeholder="Cerca cliente, tavolo, PR…"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="w-full bg-[#1e1e1e] border border-[#2e2e2e] px-4 py-3 text-sm font-sans text-white placeholder-[#444] outline-none focus:border-accent/40 transition-colors"
-        />
-        {search && (
-          <button onClick={() => setSearch('')}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#555] hover:text-white transition-colors">
-            <X size={14} />
+      {/* Tab switcher */}
+      <div className="flex gap-0 mb-5 max-w-xl mx-auto w-full border border-[#2a2a2a]">
+        {(['lista', 'pianta'] as const).map(t => (
+          <button key={t}
+            onClick={() => setTab(t)}
+            className={cn(
+              'flex-1 py-2.5 text-[9px] hv font-black uppercase tracking-widest transition-colors',
+              tab === t ? 'bg-accent text-black' : 'text-[#555] hover:text-white'
+            )}>
+            {t === 'lista' ? 'Lista' : 'Pianta'}
           </button>
-        )}
+        ))}
       </div>
 
-      {/* Da fare */}
-      {pending.length > 0 && (
-        <div className="mb-4">
-          <p className="text-[8px] font-sans uppercase tracking-[0.4em] text-[#555] mb-2 px-1">
-            Da fare — {pending.length}
-          </p>
-          <div className="border border-[#2a2a2a] bg-card overflow-hidden">
-            {pending.map(res => (
-              <CheckinRow key={res.id} res={res} events={events} venues={venues}
-                onCheckIn={onCheckIn} onUndoCheckIn={onUndoCheckIn} onUpdatePeople={onUpdatePeople} />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Entrati */}
-      {entered.length > 0 && (
-        <div>
-          <button
-            onClick={() => setShowEntered(o => !o)}
-            className="flex items-center gap-2 text-[8px] font-sans uppercase tracking-[0.4em] text-[#555] hover:text-[#888] transition-colors mb-2 px-1 w-full"
-          >
-            <ChevronDown size={11} className={cn('transition-transform duration-200', showEntered && 'rotate-180')} />
-            Entrati — {entered.length}
-          </button>
-          <AnimatePresence>
-            {showEntered && (
-              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden">
-                <div className="border border-[#2a2a2a] bg-card overflow-hidden">
-                  {entered.map(res => (
-                    <CheckinRow key={res.id} res={res} events={events} venues={venues}
-                      onCheckIn={onCheckIn} onUndoCheckIn={onUndoCheckIn} onUpdatePeople={onUpdatePeople} />
-                  ))}
-                </div>
-              </motion.div>
+      {tab === 'lista' && (
+        <div className="max-w-xl mx-auto w-full">
+          {/* Search */}
+          <div className="relative mb-6">
+            <input
+              type="text"
+              placeholder="Cerca cliente, tavolo, PR…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full bg-[#1e1e1e] border border-[#2e2e2e] px-4 py-3 text-sm font-sans text-white placeholder-[#444] outline-none focus:border-accent/40 transition-colors"
+            />
+            {search && (
+              <button onClick={() => setSearch('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#555] hover:text-white transition-colors">
+                <X size={14} />
+              </button>
             )}
-          </AnimatePresence>
+          </div>
+
+          {/* Da fare */}
+          {pending.length > 0 && (
+            <div className="mb-4">
+              <p className="text-[8px] font-sans uppercase tracking-[0.4em] text-[#555] mb-2 px-1">
+                Da fare — {pending.length}
+              </p>
+              <div className="border border-[#2a2a2a] bg-card overflow-hidden">
+                {pending.map(res => (
+                  <CheckinRow key={res.id} res={res} events={events} venues={venues}
+                    onCheckIn={onCheckIn} onUndoCheckIn={onUndoCheckIn} onUpdatePeople={onUpdatePeople} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Entrati */}
+          {entered.length > 0 && (
+            <div>
+              <button
+                onClick={() => setShowEntered(o => !o)}
+                className="flex items-center gap-2 text-[8px] font-sans uppercase tracking-[0.4em] text-[#555] hover:text-[#888] transition-colors mb-2 px-1 w-full"
+              >
+                <ChevronDown size={11} className={cn('transition-transform duration-200', showEntered && 'rotate-180')} />
+                Entrati — {entered.length}
+              </button>
+              <AnimatePresence>
+                {showEntered && (
+                  <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden">
+                    <div className="border border-[#2a2a2a] bg-card overflow-hidden">
+                      {entered.map(res => (
+                        <CheckinRow key={res.id} res={res} events={events} venues={venues}
+                          onCheckIn={onCheckIn} onUndoCheckIn={onUndoCheckIn} onUpdatePeople={onUpdatePeople} />
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+
+          {filtered.length === 0 && (
+            <div className="py-16 text-center">
+              <p className="text-[9px] font-sans uppercase tracking-[0.4em] text-[#444]">Nessun risultato</p>
+            </div>
+          )}
         </div>
       )}
 
-      {filtered.length === 0 && (
-        <div className="py-16 text-center">
-          <p className="text-[9px] font-sans uppercase tracking-[0.4em] text-[#444]">Nessun risultato</p>
-        </div>
-      )}
+      {tab === 'pianta' && (() => {
+        if (!activeEvent) return null;
+        const venue = venues.find(v => v.id === activeEvent.venueId);
+        const fp = venue?.floorPlans.find(f => f.id === activeEvent.floorPlanId) ?? venue?.floorPlans[0];
+        if (!venue || !fp) return (
+          <div className="flex flex-col items-center justify-center py-20 gap-3">
+            <p className="text-[9px] font-sans uppercase tracking-[0.4em] text-[#555]">Nessuna pianta disponibile</p>
+          </div>
+        );
+        return (
+          <div className="flex-1 min-h-0">
+            <FloorPlanViewer
+              event={activeEvent}
+              floorPlan={fp}
+              reservations={reservations}
+              currentUser={currentUser}
+              onReservationAdded={() => {}}
+              onReservationUpdated={() => {}}
+              onReservationRemoved={() => {}}
+              hostMode={true}
+            />
+          </div>
+        );
+      })()}
+
     </div>
   );
 }
