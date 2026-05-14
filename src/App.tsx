@@ -1074,7 +1074,7 @@ export default function App() {
       </aside>
 
       {/* ── Main ── */}
-      <main className="flex-1 flex flex-col min-w-0 overflow-auto">
+      <main className="flex-1 flex flex-col min-w-0 overflow-auto pb-16 md:pb-0">
         {/* Header */}
         {(() => {
           const crumbs = breadcrumbs();
@@ -1670,8 +1670,26 @@ export default function App() {
         </div>
       </main>
 
+      {/* Bottom tab bar — mobile only, admin/pr */}
+      {user.role !== 'host' && (
+        <BottomTabBar
+          user={user}
+          view={view}
+          pendingCount={pendingCount}
+          prPendingCount={prPendingCount}
+          onNav={(v) => {
+            setView(v as AppView);
+            setSelectedVenue(null);
+            setSelectedEvent(null);
+            setEditingFloorPlan(null);
+            setEditorVenueId(null);
+            setSelectedPR(null);
+          }}
+        />
+      )}
+
       {/* Toast overlay */}
-      <div className="fixed bottom-6 right-6 z-[999] flex flex-col gap-2 pointer-events-none">
+      <div className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-[999] flex flex-col gap-2 pointer-events-none">
         <AnimatePresence>
           {toasts.map(t => (
             <motion.div
@@ -3345,5 +3363,58 @@ function IconBtn({ children, onClick }: { children: React.ReactNode; onClick?: (
     <button onClick={onClick} className="w-8 h-8 border border-[#383838] flex items-center justify-center text-[#999] hover:text-accent hover:border-[#383838] transition-all">
       {children}
     </button>
+  );
+}
+
+/* ── BottomTabBar (mobile) ───────────────────────────────── */
+function BottomTabBar({ user, view, onNav, pendingCount, prPendingCount }: {
+  user: UserProfile;
+  view: string;
+  onNav: (v: string) => void;
+  pendingCount: number;
+  prPendingCount: number;
+}) {
+  type Tab = { id: string; label: string; icon: React.ReactNode; active: boolean; badge?: number };
+
+  const tabs: Tab[] = user.role === 'admin' ? [
+    { id: 'active-events', label: 'Eventi',   icon: <Calendar size={16}/>,  active: view === 'active-events' || view === 'plan' },
+    { id: 'venues',        label: 'Club',     icon: <Building2 size={16}/>, active: view === 'venues' || view === 'venue-events' || view === 'editor' },
+    { id: 'approvals',     label: 'Approva',  icon: <Bell size={16}/>,      active: view === 'approvals', badge: pendingCount },
+    { id: 'pr-management', label: 'PR',       icon: <Users size={16}/>,     active: view === 'pr-management' },
+    { id: 'checkin',       label: 'Ingresso', icon: <DoorOpen size={16}/>,  active: view === 'checkin' },
+  ] : [
+    { id: 'events',        label: 'Eventi',   icon: <Calendar size={16}/>,  active: view === 'events' || view === 'plan' },
+    { id: 'reservations',  label: 'Prenot.',  icon: <BarChart3 size={16}/>, active: view === 'reservations', badge: prPendingCount },
+    { id: 'history',       label: 'Storico',  icon: <Clock size={16}/>,     active: view === 'history' },
+    { id: 'profile',       label: 'Profilo',  icon: <Settings size={16}/>,  active: view === 'profile' },
+  ];
+
+  return (
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#0c0c0c]/95 backdrop-blur-md border-t border-[#2a2a2a]">
+      <div className="flex items-stretch">
+        {tabs.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => onNav(tab.id)}
+            className={cn(
+              'flex-1 flex flex-col items-center justify-center gap-1 py-2 relative transition-colors',
+              tab.active ? 'text-accent' : 'text-[#555] hover:text-[#888]'
+            )}
+          >
+            {tab.active && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-[2px] bg-accent" />}
+            <div className="relative">
+              {tab.icon}
+              {tab.badge !== undefined && tab.badge > 0 && (
+                <span className="absolute -top-1.5 -right-2 min-w-[14px] h-[14px] px-1 rounded-full bg-accent text-black text-[8px] hv font-black flex items-center justify-center">
+                  {tab.badge}
+                </span>
+              )}
+            </div>
+            <span className="text-[8px] font-sans uppercase tracking-widest">{tab.label}</span>
+          </button>
+        ))}
+      </div>
+      <div style={{ paddingBottom: 'env(safe-area-inset-bottom)' }} />
+    </nav>
   );
 }
