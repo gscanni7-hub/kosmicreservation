@@ -595,6 +595,69 @@ export default function App() {
     return '';
   };
 
+  type Crumb = { label: string; onClick?: () => void };
+
+  const breadcrumbs = (): Crumb[] => {
+    if (view === 'venue-events' && selectedVenue) {
+      return [
+        { label: 'Clubs', onClick: () => { setSelectedVenue(null); setSelectedEvent(null); setView('venues'); } },
+        { label: selectedVenue.name },
+      ];
+    }
+    if (view === 'plan' && selectedVenue && selectedEvent) {
+      return [
+        { label: 'Clubs', onClick: () => { setSelectedVenue(null); setSelectedEvent(null); setView('venues'); } },
+        { label: selectedVenue.name, onClick: () => { setSelectedEvent(null); setView('venue-events'); } },
+        { label: 'Pianta' },
+      ];
+    }
+    if (view === 'editor' && editorVenueId) {
+      const v = venues.find(x => x.id === editorVenueId);
+      return [
+        { label: 'Clubs', onClick: () => { setEditorVenueId(null); setEditingFloorPlan(null); setView('venues'); } },
+        { label: v?.name ?? '', onClick: () => { setEditorVenueId(null); setEditingFloorPlan(null); setView('venue-events'); } },
+        { label: 'Editor' },
+      ];
+    }
+    if (view === 'pr-management' && selectedPR) {
+      return [
+        { label: 'I Miei PR', onClick: () => setSelectedPR(null) },
+        { label: `${selectedPR.displayName} ${selectedPR.lastName}` },
+      ];
+    }
+    return [];
+  };
+
+  const contextBadges = (): { label: string; color: string }[] => {
+    if (view === 'plan' && selectedEvent) {
+      const evResv = reservations.filter(r => r.eventId === selectedEvent.id && r.approvalStatus === 'approved');
+      const checkedIn = evResv.filter(r => r.checkedIn).length;
+      const total = evResv.length;
+      const status = selectedEvent.status;
+      const statusBadge = status === 'active'
+        ? { label: 'Attiva', color: '#22c55e' }
+        : status === 'draft'
+        ? { label: 'Bozza', color: '#f97316' }
+        : { label: 'Conclusa', color: '#666' };
+      const badges = [statusBadge];
+      if (total > 0) badges.push({ label: `${checkedIn}/${total} entrati`, color: '#D4622A' });
+      return badges;
+    }
+    return [];
+  };
+
+  const contextSubtitle = (): string => {
+    if (view === 'venue-events' && selectedVenue) return selectedVenue.address;
+    if (view === 'plan' && selectedEvent) {
+      try {
+        return new Date(selectedEvent.date).toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+      } catch { return selectedEvent.date; }
+    }
+    if (view === 'editor' && editingFloorPlan) return editingFloorPlan.fp.name;
+    if (view === 'pr-management' && selectedPR) return selectedPR.email;
+    return '';
+  };
+
   /* ── LOGIN ──────────────────────────────────────────────── */
   if (!user) {
     return (
@@ -1013,21 +1076,73 @@ export default function App() {
       {/* ── Main ── */}
       <main className="flex-1 flex flex-col min-w-0 overflow-auto">
         {/* Header */}
-        <header className="h-12 border-b border-[#2e2e2e] flex items-center justify-between px-5 bg-[#171717]/95 backdrop-blur-sm sticky top-0 md:top-0 z-30 shrink-0">
-          <div className="flex items-center gap-4 min-w-0">
-            {showBack && (
-              <button onClick={goBack}
-                className="flex items-center gap-1.5 text-[#666] hover:text-accent transition-colors text-[10px] font-sans uppercase tracking-widest shrink-0">
-                <ArrowLeft size={11} /> Indietro
-              </button>
-            )}
-            <span className="text-[10px] font-sans font-medium uppercase tracking-[0.35em] text-[#999] truncate">
-              {headerTitle()}
-            </span>
-          </div>
-          <div className="flex items-center gap-3 shrink-0">
-          </div>
-        </header>
+        {(() => {
+          const crumbs = breadcrumbs();
+          const subtitle = contextSubtitle();
+          const badges = contextBadges();
+          const expanded = crumbs.length > 0;
+
+          if (!expanded) {
+            return (
+              <header className="h-12 border-b border-[#2e2e2e] flex items-center justify-between px-5 bg-[#171717]/95 backdrop-blur-sm sticky top-0 z-30 shrink-0">
+                <div className="flex items-center gap-4 min-w-0">
+                  {showBack && (
+                    <button onClick={goBack}
+                      className="flex items-center gap-1.5 text-[#666] hover:text-accent transition-colors text-[10px] font-sans uppercase tracking-widest shrink-0">
+                      <ArrowLeft size={11} /> Indietro
+                    </button>
+                  )}
+                  <span className="text-[10px] font-sans font-medium uppercase tracking-[0.35em] text-[#999] truncate">
+                    {headerTitle()}
+                  </span>
+                </div>
+              </header>
+            );
+          }
+
+          return (
+            <header className="border-b border-[#2e2e2e] bg-[#171717]/95 backdrop-blur-sm sticky top-0 z-30 shrink-0">
+              <div className="px-5 py-3">
+                {/* Breadcrumbs */}
+                <div className="flex items-center gap-1.5 mb-1.5 min-w-0">
+                  {crumbs.map((bc, i) => (
+                    <React.Fragment key={i}>
+                      {i > 0 && <ChevronRight size={10} className="text-[#444] shrink-0" />}
+                      {bc.onClick ? (
+                        <button onClick={bc.onClick}
+                          className="text-[8px] font-sans uppercase tracking-[0.3em] text-[#666] hover:text-accent transition-colors truncate">
+                          {bc.label}
+                        </button>
+                      ) : (
+                        <span className="text-[8px] font-sans uppercase tracking-[0.3em] text-[#999] truncate">
+                          {bc.label}
+                        </span>
+                      )}
+                    </React.Fragment>
+                  ))}
+                </div>
+                {/* Title + subtitle + badges */}
+                <div className="flex items-baseline gap-3 flex-wrap">
+                  <h1 className="hv font-black uppercase text-white text-base md:text-lg tracking-tight truncate">
+                    {headerTitle()}
+                  </h1>
+                  {subtitle && (
+                    <span className="text-[10px] font-sans text-[#888] truncate capitalize">
+                      {subtitle}
+                    </span>
+                  )}
+                  {badges.map((badge, i) => (
+                    <span key={i}
+                      className="text-[8px] font-sans uppercase tracking-widest px-2 py-0.5 border"
+                      style={{ color: badge.color, borderColor: `${badge.color}33` }}>
+                      {badge.label}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </header>
+          );
+        })()}
 
         {/* Content */}
         <div className="flex-1 p-5 md:p-8 overflow-auto">
