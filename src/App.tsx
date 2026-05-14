@@ -2898,6 +2898,7 @@ function VenueCard({ venue, eventCount, onClick, onEdit, onDelete }: {
     <motion.div
       onClick={onClick}
       whileHover={{ y: -3 }}
+      whileTap={{ scale: 0.985 }}
       transition={{ duration: 0.3, ease: easeOutQuart }}
       className="group bg-card border border-[#383838] cursor-pointer overflow-hidden flex flex-col relative card-hover"
     >
@@ -2960,6 +2961,7 @@ function EventCard({ event, venueName, onClick, onEdit, onDelete }: {
     <motion.div
       onClick={onClick}
       whileHover={{ y: -3 }}
+      whileTap={{ scale: 0.985 }}
       transition={{ duration: 0.3, ease: easeOutQuart }}
       className="group bg-card border border-[#383838] cursor-pointer overflow-hidden flex flex-col card-hover"
     >
@@ -3714,15 +3716,25 @@ function BottomTabBar({ user, view, onNav, pendingCount, prPendingCount }: {
               tab.active ? 'text-accent' : 'text-[#555] hover:text-[#888]'
             )}
           >
-            {tab.active && <span className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-[2px] bg-accent" />}
-            <div className="relative">
+            {tab.active && (
+              <motion.span
+                layoutId="bottom-tab-indicator"
+                className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-[2px] bg-accent"
+                transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+              />
+            )}
+            <motion.div
+              className="relative"
+              animate={tab.active ? { scale: 1.08 } : { scale: 1 }}
+              transition={{ duration: 0.25, ease: easeOutQuart }}
+            >
               {tab.icon}
               {tab.badge !== undefined && tab.badge > 0 && (
                 <span className="absolute -top-1.5 -right-2 min-w-[14px] h-[14px] px-1 rounded-full bg-accent text-black text-[8px] hv font-black flex items-center justify-center">
                   {tab.badge}
                 </span>
               )}
-            </div>
+            </motion.div>
             <span className="text-[8px] font-sans uppercase tracking-widest">{tab.label}</span>
           </button>
         ))}
