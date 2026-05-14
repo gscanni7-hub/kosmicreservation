@@ -16,6 +16,7 @@ import FloorPlanViewer from './components/floorplan/FloorPlanViewer';
 import FloorPlanEditor from './components/floorplan/FloorPlanEditor';
 import IngressiView from './components/host/IngressiView';
 import PRLinkGenerator from './components/pr/PRLinkGenerator';
+import QuickAddModal from './components/pr/QuickAddModal';
 import Dashboard from './components/dashboard/Dashboard';
 import EventDetailView from './components/admin/EventDetailView';
 
@@ -215,6 +216,7 @@ export default function App() {
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [showNewEventModal, setShowNewEventModal] = useState(false);
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [editingFloorPlan, setEditingFloorPlan] = useState<{ venueId: string; fp: FloorPlan } | null>(null);
   const [showNewClubModal, setShowNewClubModal] = useState(false);
@@ -1416,7 +1418,17 @@ export default function App() {
 
             {view === 'events' && (
               <motion.div key="events" {...PAGE}>
-                <PageTitle title="Prossimi eventi" sub="Seleziona un evento per accedere alla pianta" />
+                <div className="flex items-start justify-between mb-0 gap-4">
+                  <PageTitle title="Prossimi eventi" sub="Seleziona un evento per accedere alla pianta" />
+                  {user.role === 'pr' && activeEvents.length > 0 && (
+                    <button
+                      onClick={() => setShowQuickAdd(true)}
+                      className="flex items-center gap-2 bg-accent text-black px-4 py-2.5 text-[9px] hv font-black uppercase tracking-widest hover:bg-white transition-colors shrink-0 mt-1"
+                    >
+                      <Plus size={12} /> Aggiungi
+                    </button>
+                  )}
+                </div>
                 {activeEvents.length === 0 ? (
                   <EmptyState icon={<Calendar size={28} />} label="Nessun evento attivo." />
                 ) : (
@@ -1907,6 +1919,19 @@ export default function App() {
           onSubmit={(data) => {
             setEvents(prev => prev.map(ev => ev.id === editingEvent.id ? { ...ev, ...data } : ev));
             setEditingEvent(null);
+          }}
+        />
+      )}
+
+      {showQuickAdd && user && (
+        <QuickAddModal
+          events={events}
+          venues={venues}
+          user={user}
+          onClose={() => setShowQuickAdd(false)}
+          onAdd={(res) => {
+            const newRes = { ...res, id: `r_${Date.now()}`, createdAt: new Date().toISOString() };
+            setReservations(prev => [...prev, newRes]);
           }}
         />
       )}
@@ -2451,6 +2476,7 @@ function CheckinRow({ res, events, venues, onCheckIn, onUndoCheckIn, onUpdatePeo
 }) {
   const [open, setOpen] = useState(false);
   const [people, setPeople] = useState(res.actualPeople ?? res.guestsCount);
+  const [flash, setFlash] = useState(false);
   const isIn = res.checkedIn;
   const table = findTable(res, events, venues);
   const previewBudget = calcActualBudget(res.budget, people, table);
@@ -2458,7 +2484,11 @@ function CheckinRow({ res, events, venues, onCheckIn, onUndoCheckIn, onUpdatePeo
   const peopleChanged = people !== (res.actualPeople ?? res.guestsCount);
 
   return (
-    <div className={cn('border-b border-[#1e1e1e] last:border-0', isIn && 'bg-green-500/[0.03]')}>
+    <motion.div
+      animate={flash ? { backgroundColor: 'rgba(34,197,94,0.14)' } : isIn ? { backgroundColor: 'rgba(34,197,94,0.03)' } : { backgroundColor: 'transparent' }}
+      transition={{ duration: 0.35 }}
+      className="border-b border-[#1e1e1e] last:border-0"
+    >
       {/* Main row — always visible */}
       <button
         onClick={() => setOpen(o => !o)}
@@ -2514,12 +2544,18 @@ function CheckinRow({ res, events, venues, onCheckIn, onUndoCheckIn, onUpdatePeo
               {/* Actions */}
               <div className="flex gap-2">
                 {!isIn ? (
-                  <button
-                    onClick={() => { onCheckIn(res.id, people); setOpen(false); }}
-                    className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-accent text-black text-[9px] hv font-black uppercase tracking-widest hover:bg-white transition-colors"
+                  <motion.button
+                    animate={flash ? { backgroundColor: '#22C55E', scale: [1, 1.03, 1] } : { backgroundColor: '#D4622A', scale: 1 }}
+                    transition={{ duration: 0.3 }}
+                    onClick={() => {
+                      setFlash(true);
+                      setTimeout(() => { onCheckIn(res.id, people); setOpen(false); }, 560);
+                    }}
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 text-black text-[9px] hv font-black uppercase tracking-widest"
                   >
-                    <LogIn size={12} /> Segna Entrata
-                  </button>
+                    {flash ? <CheckCircle2 size={12} /> : <LogIn size={12} />}
+                    {flash ? 'Entrato!' : 'Segna Entrata'}
+                  </motion.button>
                 ) : (
                   <>
                     {peopleChanged && (
@@ -2543,7 +2579,7 @@ function CheckinRow({ res, events, venues, onCheckIn, onUndoCheckIn, onUpdatePeo
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </motion.div>
   );
 }
 
@@ -2733,9 +2769,9 @@ function SidebarContent({ user, view, onNav, onLogout, occupancyPct = 0, revenue
   return (
     <>
       {/* Brand */}
-      <div className="px-6 py-5 border-b border-[#2e2e2e] shrink-0">
-        <div className="flex items-center gap-3.5">
-          <div className="w-10 h-10 shrink-0 flex items-center justify-center">
+      <div className="px-6 py-6 border-b border-[#2e2e2e] shrink-0">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 shrink-0 flex items-center justify-center">
             <img
               src="/Logo.png"
               alt="Nightplan"
@@ -2743,8 +2779,8 @@ function SidebarContent({ user, view, onNav, onLogout, occupancyPct = 0, revenue
             />
           </div>
           <div className="flex flex-col justify-center">
-            <span className="hv font-black uppercase tracking-widest text-[11px] text-white leading-tight">Nightplan</span>
-            <span className="text-[8px] font-sans text-[#666] uppercase tracking-[0.3em] mt-0.5">Management</span>
+            <span className="hv font-black uppercase tracking-widest text-[13px] text-white leading-tight">Nightplan</span>
+            <span className="text-[8px] font-sans text-[#D4622A] uppercase tracking-[0.3em] mt-0.5">Management</span>
           </div>
         </div>
       </div>
@@ -3014,6 +3050,7 @@ function EventCard({ event, venueName, onClick, onEdit, onDelete }: {
   onEdit?: (e: React.MouseEvent) => void;
   onDelete?: (e: React.MouseEvent) => void;
 }) {
+  const formattedDate = new Date(event.date).toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' });
   return (
     <motion.div
       onClick={onClick}
@@ -3022,59 +3059,91 @@ function EventCard({ event, venueName, onClick, onEdit, onDelete }: {
       transition={{ duration: 0.3, ease: easeOutQuart }}
       className="group bg-card border border-[#383838] cursor-pointer overflow-hidden flex flex-col card-hover"
     >
-      <div className="h-[2px] w-0 group-hover:w-full bg-accent transition-all duration-500 origin-left" />
-
-      <div className="p-7 flex flex-col gap-5 flex-1">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            {venueName && (
-              <span className="text-[8px] font-sans uppercase tracking-widest text-[#888] flex items-center gap-1.5 shrink-0">
-                <Building2 size={9} /> {venueName}
-              </span>
-            )}
+      {/* Cover image */}
+      {event.coverImage ? (
+        <div className="relative h-36 overflow-hidden">
+          <img src={event.coverImage} alt={event.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#1a1a1a] via-transparent to-transparent" />
+          <div className="absolute top-3 left-3 right-3 flex items-center justify-between">
             <span
-              className="text-[8px] font-sans font-bold uppercase tracking-widest px-2 py-1 shrink-0"
+              className="text-[8px] font-sans font-bold uppercase tracking-widest px-2 py-1"
               style={
                 event.status === 'active'
-                  ? { color: COLORS.success, background: 'rgba(34, 197, 94, 0.10)' }
-                  : event.status === 'draft'
-                  ? { color: COLORS.warning, background: 'rgba(245, 158, 11, 0.10)' }
-                  : { color: '#999', background: '#2a2a2a' }
+                  ? { color: COLORS.success, background: 'rgba(0,0,0,0.7)' }
+                  : { color: '#999', background: 'rgba(0,0,0,0.7)' }
               }
             >
-              {event.status === 'active' && (
-                <span className="inline-block w-1.5 h-1.5 rounded-full blink mr-1.5 align-middle" style={{ background: COLORS.success }} />
-              )}
+              {event.status === 'active' && <span className="inline-block w-1.5 h-1.5 rounded-full blink mr-1.5 align-middle" style={{ background: COLORS.success }} />}
               {event.status}
             </span>
+            {(onEdit || onDelete) && (
+              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                {onEdit && <button onClick={onEdit} className="w-7 h-7 flex items-center justify-center bg-black/60 text-[#999] hover:text-accent transition-colors"><Pencil size={12} /></button>}
+                {onDelete && <button onClick={onDelete} className="w-7 h-7 flex items-center justify-center bg-black/60 text-[#999] hover:text-red-500 transition-colors"><Trash2 size={12} /></button>}
+              </div>
+            )}
           </div>
-          {(onEdit || onDelete) && (
-            <div className="flex items-center gap-1 shrink-0 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-              {onEdit && (
-                <button onClick={onEdit}
-                  className="w-7 h-7 flex items-center justify-center text-[#999] hover:text-accent transition-colors">
-                  <Pencil size={12} />
-                </button>
+        </div>
+      ) : (
+        <div className="h-[2px] w-0 group-hover:w-full bg-accent transition-all duration-500 origin-left" />
+      )}
+
+      <div className="p-5 flex flex-col gap-4 flex-1">
+        {!event.coverImage && (
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              {venueName && (
+                <span className="text-[8px] font-sans uppercase tracking-widest text-[#666] flex items-center gap-1.5 shrink-0">
+                  <Building2 size={9} /> {venueName}
+                </span>
               )}
-              {onDelete && (
-                <button onClick={onDelete}
-                  className="w-7 h-7 flex items-center justify-center text-[#999] hover:text-red-500 transition-colors">
-                  <Trash2 size={12} />
-                </button>
-              )}
+              <span
+                className="text-[8px] font-sans font-bold uppercase tracking-widest px-2 py-1 shrink-0"
+                style={
+                  event.status === 'active'
+                    ? { color: COLORS.success, background: 'rgba(34,197,94,0.10)' }
+                    : event.status === 'draft'
+                    ? { color: COLORS.warning, background: 'rgba(245,158,11,0.10)' }
+                    : { color: '#999', background: '#2a2a2a' }
+                }
+              >
+                {event.status === 'active' && <span className="inline-block w-1.5 h-1.5 rounded-full blink mr-1.5 align-middle" style={{ background: COLORS.success }} />}
+                {event.status}
+              </span>
             </div>
+            {(onEdit || onDelete) && (
+              <div className="flex items-center gap-1 shrink-0 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                {onEdit && <button onClick={onEdit} className="w-7 h-7 flex items-center justify-center text-[#999] hover:text-accent transition-colors"><Pencil size={12} /></button>}
+                {onDelete && <button onClick={onDelete} className="w-7 h-7 flex items-center justify-center text-[#999] hover:text-red-500 transition-colors"><Trash2 size={12} /></button>}
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="flex-1">
+          {event.coverImage && venueName && (
+            <span className="text-[8px] font-sans uppercase tracking-widest text-[#666] flex items-center gap-1.5 mb-1">
+              <Building2 size={9} /> {venueName}
+            </span>
+          )}
+          <div className="flex items-center gap-2 mb-1.5">
+            <p className="font-mono text-[10px] text-[#666] tracking-wider">{formattedDate}</p>
+            {event.time && <p className="font-mono text-[10px] text-[#555]">· {event.time}</p>}
+          </div>
+          <h3 className="hv font-black text-xl uppercase text-white leading-tight">{event.name}</h3>
+          {event.description && (
+            <p className="text-[11px] font-sans text-[#666] mt-2 leading-relaxed line-clamp-2">{event.description}</p>
           )}
         </div>
 
-        <div className="flex-1">
-          <p className="font-mono text-[10px] text-[#888] mb-2 tracking-wider">{event.date}</p>
-          <h3 className="hv font-black text-[clamp(18px,2.5vw,24px)] uppercase text-white leading-tight">{event.name}</h3>
-          <p className="text-[11px] font-sans text-[#999] mt-2.5 leading-relaxed line-clamp-2">{event.description}</p>
-        </div>
-
-        <div className="flex items-center gap-1.5 text-[#888] group-hover:text-accent transition-colors border-t border-[#2e2e2e] pt-4 mt-1">
-          <span className="text-[9px] font-sans uppercase tracking-widest">Apri Pianta</span>
-          <ChevronRight size={11} className="group-hover:translate-x-1 transition-transform" />
+        <div className="flex items-center justify-between border-t border-[#222] pt-3">
+          <div className="flex items-center gap-1.5 text-[#666] group-hover:text-accent transition-colors">
+            <span className="text-[9px] font-sans uppercase tracking-widest">Apri</span>
+            <ChevronRight size={11} className="group-hover:translate-x-1 transition-transform" />
+          </div>
+          {event.maxCapacity && (
+            <span className="text-[9px] font-mono text-[#555]">Max {event.maxCapacity}</span>
+          )}
         </div>
       </div>
     </motion.div>

@@ -127,7 +127,10 @@ export default function PublicRegistrationForm() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#111] flex items-center justify-center">
+      <div className="min-h-screen bg-[#0d0d0d] flex flex-col items-center justify-center gap-4">
+        <div className="w-8 h-8 bg-[#D4622A] flex items-center justify-center mb-2">
+          <span className="text-black font-black text-[11px]" style={{ fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}>N</span>
+        </div>
         <div className="w-5 h-5 border-2 border-[#D4622A] border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -135,12 +138,20 @@ export default function PublicRegistrationForm() {
 
   if (notFound) {
     return (
-      <div className="min-h-screen bg-[#111] flex items-center justify-center p-6">
-        <div className="text-center space-y-3">
-          <AlertCircle size={40} className="text-[#EF4444] mx-auto" />
-          <p className="text-white font-bold text-lg">Link non valido</p>
-          <p className="text-[#666] text-sm">Questo link di registrazione non esiste o è scaduto.</p>
-        </div>
+      <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center p-6">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+          className="text-center space-y-4 max-w-xs"
+        >
+          <div className="w-10 h-10 bg-[#1a1a1a] border border-[#2a2a2a] flex items-center justify-center mx-auto">
+            <AlertCircle size={20} className="text-[#EF4444]" />
+          </div>
+          <div>
+            <p className="text-[8px] font-mono uppercase tracking-[0.4em] text-[#D4622A] mb-2">Nightplan</p>
+            <p className="text-white hv font-black text-xl uppercase">Link non valido</p>
+            <p className="text-[#555] text-xs mt-2">Questo link di registrazione non esiste o è scaduto.</p>
+          </div>
+        </motion.div>
       </div>
     );
   }
@@ -150,31 +161,60 @@ export default function PublicRegistrationForm() {
   }) : '';
 
   return (
-    <div className="min-h-screen bg-[#111] text-white">
-      {/* Header */}
+    <div className="min-h-screen bg-[#0d0d0d] text-white">
+      {/* Hero header */}
       <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#D4622A]/12 to-transparent pointer-events-none" />
-        <div className="relative px-6 pt-12 pb-8 text-center">
-          <p className="text-[9px] font-mono uppercase tracking-[0.25em] text-[#D4622A] mb-3">
-            {venue?.name ?? 'Nightplan'}
-          </p>
-          <h1 className="text-3xl font-black uppercase tracking-tight" style={{ fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}>
-            {event?.name}
-          </h1>
-          <p className="text-[#888] text-xs mt-2 font-mono capitalize">{formattedDate}</p>
+        {/* Cover image */}
+        {event?.coverImage && (
+          <div className="absolute inset-0">
+            <img src={event.coverImage} alt="" className="w-full h-full object-cover opacity-30" />
+            <div className="absolute inset-0 bg-gradient-to-b from-[#0d0d0d]/40 via-[#0d0d0d]/60 to-[#0d0d0d]" />
+          </div>
+        )}
+        {!event?.coverImage && (
+          <div className="absolute inset-0 bg-gradient-to-b from-[#D4622A]/10 to-transparent" />
+        )}
+        <div className="relative px-6 pt-10 pb-10 text-center max-w-md mx-auto">
+          {/* Nightplan brand */}
+          <div className="flex items-center justify-center gap-2 mb-8">
+            <div className="w-5 h-5 bg-[#D4622A] flex items-center justify-center">
+              <span className="text-black font-black text-[8px]" style={{ fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}>N</span>
+            </div>
+            <span className="text-[9px] font-mono uppercase tracking-[0.45em] text-[#555]">Nightplan</span>
+          </div>
+
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+            <p className="text-[9px] font-mono uppercase tracking-[0.3em] text-[#D4622A] mb-2">
+              {venue?.name}
+            </p>
+            <h1 className="hv font-black text-4xl uppercase leading-none text-white mb-3">
+              {event?.name}
+            </h1>
+            <p className="text-[#666] text-[11px] font-mono capitalize">{formattedDate}{event?.time ? ` · ${event.time}` : ''}</p>
+          </motion.div>
+
           {pr && (
-            <div className="mt-4 inline-flex items-center gap-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-full px-4 py-1.5">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#D4622A]" />
-              <span className="text-[10px] font-mono uppercase tracking-widest text-[#aaa]">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }}
+              className="mt-5 inline-flex items-center gap-2 bg-[#1a1a1a] border border-[#2a2a2a] px-4 py-2"
+            >
+              <div className="w-1.5 h-1.5 bg-[#D4622A]" />
+              <span className="text-[9px] font-mono uppercase tracking-widest text-[#aaa]">
                 Invitato da {pr.displayName} {pr.lastName}
               </span>
-            </div>
+            </motion.div>
           )}
         </div>
       </div>
 
+      {/* Divider */}
+      <div className="max-w-md mx-auto px-6">
+        <div className="h-[1px] bg-gradient-to-r from-transparent via-[#2a2a2a] to-transparent mb-8" />
+      </div>
+
       {/* Form */}
       <div className="px-6 pb-16 max-w-md mx-auto">
+        <p className="text-[8px] font-mono uppercase tracking-[0.4em] text-[#444] text-center mb-6">Compila il modulo per registrarti</p>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
@@ -275,6 +315,14 @@ export default function PublicRegistrationForm() {
             Riceverai il tuo biglietto con QR code
           </p>
         </form>
+
+        {/* Footer brand */}
+        <div className="mt-12 pt-6 border-t border-[#1a1a1a] flex items-center justify-center gap-2">
+          <div className="w-4 h-4 bg-[#D4622A] flex items-center justify-center">
+            <span className="text-black font-black text-[7px]" style={{ fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif' }}>N</span>
+          </div>
+          <span className="text-[8px] font-mono uppercase tracking-[0.4em] text-[#333]">Powered by Nightplan</span>
+        </div>
       </div>
     </div>
   );
