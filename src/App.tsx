@@ -16,8 +16,9 @@ import FloorPlanViewer from './components/floorplan/FloorPlanViewer';
 import FloorPlanEditor from './components/floorplan/FloorPlanEditor';
 import IngressiView from './components/host/IngressiView';
 import PRLinkGenerator from './components/pr/PRLinkGenerator';
+import Dashboard from './components/dashboard/Dashboard';
 
-type AppView = 'venues' | 'venue-events' | 'events' | 'active-events' | 'plan' | 'editor' | 'reservations' | 'approvals' | 'profile' | 'history' | 'pr-management' | 'checkin';
+type AppView = 'dashboard' | 'venues' | 'venue-events' | 'events' | 'active-events' | 'plan' | 'editor' | 'reservations' | 'approvals' | 'profile' | 'history' | 'pr-management' | 'checkin';
 
 interface Toast { id: string; message: string; sub?: string; }
 
@@ -274,6 +275,7 @@ export default function App() {
   const buildPath = (): string => {
     if (!user) return '/login';
     switch (view) {
+      case 'dashboard':      return '/home';
       case 'venues':         return '/clubs';
       case 'venue-events':   return selectedVenue ? `/clubs/${selectedVenue.id}` : '/clubs';
       case 'plan':           return (selectedVenue && selectedEvent)
@@ -339,6 +341,7 @@ export default function App() {
     }
     // Top-level routes
     const topMap: Record<string, AppView> = {
+      '/home':          'dashboard',
       '/clubs':         'venues',
       '/serate-attive': 'active-events',
       '/serate':        'events',
@@ -413,7 +416,7 @@ export default function App() {
     const profile: UserProfile = { id: found.id, email: found.email, role: found.role, displayName: found.displayName, lastName: found.lastName, phone: found.phone, profileImage: found.profileImage };
     localStorage.setItem('nightplan_user', JSON.stringify(profile));
     setUser(profile);
-    setView(found.role === 'admin' ? 'active-events' : found.role === 'host' ? 'checkin' : 'events');
+    setView('dashboard');
     setLoginError('');
   };
 
@@ -429,7 +432,7 @@ export default function App() {
         const profile: UserProfile = { id: mockUser.id, email: mockUser.email, role: mockUser.role, displayName: mockUser.displayName, lastName: mockUser.lastName ?? '', phone: mockUser.phone ?? '', profileImage: g.photoURL };
         localStorage.setItem('nightplan_user', JSON.stringify(profile));
         setUser(profile);
-        setView(mockUser.role === 'admin' ? 'active-events' : 'events');
+        setView('dashboard');
         return;
       }
 
@@ -439,7 +442,7 @@ export default function App() {
           const profile: UserProfile = { id: managed.id, email: managed.email, role: 'pr', displayName: managed.displayName, lastName: managed.lastName, phone: managed.phone, profileImage: g.photoURL };
           localStorage.setItem('nightplan_user', JSON.stringify(profile));
           setUser(profile);
-          setView('events');
+          setView('dashboard');
         } else if (managed.status === 'pending') {
           setErr('Il tuo account è in attesa di approvazione.');
         } else {
@@ -1366,6 +1369,23 @@ export default function App() {
                     </motion.div>
                   )}
                 </AnimatePresence>
+              </motion.div>
+            )}
+
+            {/* Dashboard home */}
+            {view === 'dashboard' && (
+              <motion.div key="dashboard" {...PAGE}>
+                <Dashboard
+                  user={user}
+                  events={events}
+                  venues={venues}
+                  reservations={reservations}
+                  managedUsers={managedUsers}
+                  pendingCount={pendingCount}
+                  prPendingCount={prPendingCount}
+                  onNav={(v) => setView(v as AppView)}
+                  onOpenEvent={openEvent}
+                />
               </motion.div>
             )}
 
@@ -3703,13 +3723,17 @@ function BottomTabBar({ user, view, onNav, pendingCount, prPendingCount }: {
   type Tab = { id: string; label: string; icon: React.ReactNode; active: boolean; badge?: number };
 
   const tabs: Tab[] = user.role === 'admin' ? [
-    { id: 'active-events', label: 'Eventi',   icon: <Calendar size={16}/>,  active: view === 'active-events' || view === 'plan' },
-    { id: 'venues',        label: 'Club',     icon: <Building2 size={16}/>, active: view === 'venues' || view === 'venue-events' || view === 'editor' },
+    { id: 'dashboard',     label: 'Home',     icon: <TrendingUp size={16}/>, active: view === 'dashboard' },
+    { id: 'active-events', label: 'Serate',   icon: <Calendar size={16}/>,  active: view === 'active-events' || view === 'plan' },
     { id: 'approvals',     label: 'Approva',  icon: <Bell size={16}/>,      active: view === 'approvals', badge: pendingCount },
     { id: 'pr-management', label: 'PR',       icon: <Users size={16}/>,     active: view === 'pr-management' },
     { id: 'checkin',       label: 'Ingresso', icon: <DoorOpen size={16}/>,  active: view === 'checkin' },
+  ] : user.role === 'host' ? [
+    { id: 'dashboard',     label: 'Home',     icon: <TrendingUp size={16}/>, active: view === 'dashboard' },
+    { id: 'checkin',       label: 'Ingresso', icon: <DoorOpen size={16}/>,  active: view === 'checkin' },
   ] : [
-    { id: 'events',        label: 'Eventi',   icon: <Calendar size={16}/>,  active: view === 'events' || view === 'plan' },
+    { id: 'dashboard',     label: 'Home',     icon: <TrendingUp size={16}/>, active: view === 'dashboard' },
+    { id: 'events',        label: 'Serate',   icon: <Calendar size={16}/>,  active: view === 'events' || view === 'plan' },
     { id: 'reservations',  label: 'Prenot.',  icon: <BarChart3 size={16}/>, active: view === 'reservations', badge: prPendingCount },
     { id: 'history',       label: 'Storico',  icon: <Clock size={16}/>,     active: view === 'history' },
     { id: 'profile',       label: 'Profilo',  icon: <Settings size={16}/>,  active: view === 'profile' },
