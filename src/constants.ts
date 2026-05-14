@@ -211,6 +211,7 @@ export const INITIAL_EVENTS: Event[] = [
     description: 'Special guest DJ from Berlin',
     floorPlanId: 'fp_naif_1',
     status: 'active',
+    registrationToken: 'techno-friday-e1',
   },
   {
     id: 'e2',
@@ -220,6 +221,7 @@ export const INITIAL_EVENTS: Event[] = [
     description: '70s & 80s hits',
     floorPlanId: 'fp_naif_1',
     status: 'active',
+    registrationToken: 'saturday-fever-e2',
   },
 ];
 

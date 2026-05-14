@@ -14,6 +14,8 @@ import { isEmailConfigured, sendPasswordResetEmail } from './lib/emailService';
 import { isFirebaseConfigured, signInWithGoogle } from './lib/firebase';
 import FloorPlanViewer from './components/floorplan/FloorPlanViewer';
 import FloorPlanEditor from './components/floorplan/FloorPlanEditor';
+import IngressiView from './components/host/IngressiView';
+import PRLinkGenerator from './components/pr/PRLinkGenerator';
 
 type AppView = 'venues' | 'venue-events' | 'events' | 'active-events' | 'plan' | 'editor' | 'reservations' | 'approvals' | 'profile' | 'history' | 'pr-management' | 'checkin';
 
@@ -1409,6 +1411,9 @@ export default function App() {
                     ))}
                   </motion.div>
                 )}
+                {user.role === 'pr' && (
+                  <PRLinkGenerator events={activeEvents} venues={venues} user={user} />
+                )}
               </motion.div>
             )}
 
@@ -1816,10 +1821,12 @@ export default function App() {
           floorPlans={venues.find(v => v.id === selectedVenue.id)?.floorPlans ?? []}
           onClose={() => setShowNewEventModal(false)}
           onSubmit={(data) => {
+            const token = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
             setEvents(prev => [...prev, {
               id: `e_${Date.now()}`,
               venueId: selectedVenue.id,
               status: 'active',
+              registrationToken: token,
               ...data,
             }]);
             setShowNewEventModal(false);
@@ -2515,7 +2522,7 @@ function HostCheckinView({ reservations, events, venues, userRole, currentUser, 
 }) {
   const [search, setSearch] = useState('');
   const [showEntered, setShowEntered] = useState(false);
-  const [tab, setTab] = useState<'lista' | 'pianta'>('lista');
+  const [tab, setTab] = useState<'lista' | 'pianta' | 'ingressi'>('lista');
 
   const activeEvents = events.filter(e => e.status === 'active');
   const activeEvent = activeEvents[0] ?? null;
@@ -2560,17 +2567,21 @@ function HostCheckinView({ reservations, events, venues, userRole, currentUser, 
 
       {/* Tab switcher */}
       <div className="flex gap-0 mb-5 max-w-xl mx-auto w-full border border-[#2a2a2a]">
-        {(['lista', 'pianta'] as const).map(t => (
+        {(['lista', 'ingressi', 'pianta'] as const).map(t => (
           <button key={t}
             onClick={() => setTab(t)}
             className={cn(
               'flex-1 py-2.5 text-[9px] hv font-black uppercase tracking-widest transition-colors',
               tab === t ? 'bg-accent text-black' : 'text-[#555] hover:text-white'
             )}>
-            {t === 'lista' ? 'Lista' : 'Pianta'}
+            {t === 'lista' ? 'Tavoli' : t === 'ingressi' ? 'Da Link' : 'Pianta'}
           </button>
         ))}
       </div>
+
+      {tab === 'ingressi' && (
+        <IngressiView activeEvent={activeEvent} />
+      )}
 
       {tab === 'lista' && (
         <div className="max-w-xl mx-auto w-full">

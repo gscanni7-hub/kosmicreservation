@@ -65,6 +65,25 @@ export interface Event {
   description: string;
   floorPlanId: string;
   status: 'draft' | 'active' | 'completed';
+  registrationToken?: string;
+}
+
+export interface Registration {
+  id: string;
+  eventId: string;
+  eventName: string;
+  venueName: string;
+  eventDate: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  guestsCount: number;
+  prId: string | null;
+  prName: string | null;
+  registeredAt: string;
+  checkedIn: boolean;
+  checkedInAt?: string;
 }
 
 export type ReservationStatus = 'confirmed' | 'blocked' | 'free';
